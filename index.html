@@ -19,7 +19,6 @@
 <body class="bg-slate-100">
   <div id="root" class="min-h-screen"></div>
 
-  <!-- React + Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -27,11 +26,10 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // ================= CONFIG =================
+    const CHECK_ACCESS_URL = '/api/check-access';
     const USE_MOCK = false;
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
-    const CHECK_ACCESS_URL = '/api/check-access';
 
     const CHANNELS = [
       { id: 'platform-setup',       name: '#platform-setup',       file: '/faqs/platform-setup.md',      dot:'bg-indigo-400' },
@@ -43,9 +41,8 @@
     ];
 
     const QUESTIONS_PER_RUN = 5;
-    const RUN_SECONDS = 10 * 60; // 10:00
+    const RUN_SECONDS = 10 * 60;
 
-    // ============== HELPERS ==============
     async function fetchFAQMd(channelId){
       const ch = CHANNELS.find(c=>c.id===channelId);
       if(!ch) throw new Error('Unknown channel');
@@ -66,18 +63,15 @@
 
     async function coachAsk({ history, channelId, faqMd }) {
       const channelName = CHANNELS.find(c=>c.id===channelId)?.name || channelId;
-
       if (USE_MOCK) {
         const q = pickQuestionFromMd(faqMd);
         return { role: 'assistant', content: q };
       }
-
       const r = await fetch(COACH_URL, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ channel: channelName, history, faqMd })
       });
-
       const txt = await r.text();
       let data;
       try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${r.status}: ${txt}`); }
@@ -87,13 +81,11 @@
 
     async function gradeAnswer({ channelId, question, answer, faqMd }) {
       const channelName = CHANNELS.find(c=>c.id===channelId)?.name || channelId;
-
       const r = await fetch(GRADE_URL, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ channel: channelName, question, answer, faqMd })
       });
-
       const txt = await r.text();
       let data;
       try { data = JSON.parse(txt); } catch { throw new Error(`Grader ${r.status}: ${txt}`); }
@@ -101,13 +93,6 @@
       return data;
     }
 
-    function randomId(len=16){
-      const arr = new Uint8Array(len);
-      (crypto || window.msCrypto).getRandomValues(arr);
-      return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
-    }
-
-    // ================= UI =================
     function Avatar({variant="bot"}) {
       const color = variant==="bot" ? "bg-indigo-500" : "bg-emerald-500";
       return <div className={`w-9 h-9 ${color} text-white rounded-full grid place-items-center font-semibold`}>{variant==="bot"?"C":"T"}</div>;
@@ -127,14 +112,49 @@
       );
     }
 
-    function App() {
-      // Access gate
-      const [accessOk, setAccessOk] = useState(false);
+    function AccessGate({ onAccess }) {
       const [codeDraft, setCodeDraft] = useState('');
       const [checking, setChecking] = useState(false);
       const [accessErr, setAccessErr] = useState('');
 
-      // Core app state
+      async function handleAccessSubmit(e) {
+        e.preventDefault();
+        if (!codeDraft.trim()) return;
+        setChecking(true);
+        setAccessErr('');
+        try {
+          const r = await fetch(CHECK_ACCESS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeDraft.trim() })
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
+          onAccess();
+          setCodeDraft('');
+        } catch (err) {
+          setAccessErr(err.message || 'Invalid code');
+        } finally {
+          setChecking(false);
+        }
+      }
+
+      return (
+        <div className="h-screen flex items-center justify-center bg-slate-900">
+          <form onSubmit={handleAccessSubmit} className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80">
+            <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
+            <input className="border rounded px-3 py-2" placeholder="Access code" value={codeDraft} onChange={e => setCodeDraft(e.target.value)} />
+            {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
+            <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50" disabled={checking}>
+              {checking ? 'Checking…' : 'Enter'}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    function App() {
+      const [accessOk, setAccessOk] = useState(false);
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
       const [faqMd, setFaqMd] = useState('');
       const [messages, setMessages] = useState([]);
@@ -146,50 +166,14 @@
       const [grading, setGrading] = useState(null);
       const [typing, setTyping] = useState(false);
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
-
-      // Sequential locking
       const [unlockedIdx, setUnlockedIdx] = useState(0);
       const [completedIds, setCompletedIds] = useState(new Set());
       const [notice, setNotice] = useState('');
-
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-// No restore — always require code on fresh load
-useEffect(() => {
-  setAccessOk(false);
-}, []);
-
-async function handleAccessSubmit(e) {
-  e?.preventDefault?.();
-  if (!codeDraft.trim()) return;
-  setChecking(true);
-  setAccessErr('');
-  try {
-    const r = await fetch(CHECK_ACCESS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: codeDraft.trim() })
-    });
-    const ok = r.ok;
-    const data = await r.json().catch(() => ({}));
-    if (!ok || !data?.ok) {
-      throw new Error(data?.error || 'Invalid code');
-    }
-    // Removed localStorage.setItem(...) — don't persist
-    setAccessOk(true);
-    setCodeDraft('');
-  } catch (err) {
-    setAccessErr(err.message || 'Invalid code');
-  } finally {
-    setChecking(false);
-  }
-}
-
-      // Load FAQ when channel changes
       useEffect(()=>{
-        if (!accessOk) return;
         (async ()=>{
           try {
             const md = await fetchFAQMd(channelId);
@@ -199,7 +183,7 @@ async function handleAccessSubmit(e) {
             console.error(e);
           }
         })();
-      }, [channelId, accessOk]);
+      }, [channelId]);
 
       useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
 
@@ -222,7 +206,7 @@ async function handleAccessSubmit(e) {
           setSecondsLeft(prev=>{
             if(prev<=1){
               clearInterval(timerRef.current);
-              endRun(); // timer out uses whatever results exist
+              endRun();
               return 0;
             }
             return prev-1;
@@ -255,7 +239,6 @@ async function handleAccessSubmit(e) {
         }
       }
 
-      // End run; also unlock next channel if this one is fully answered
       function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -264,10 +247,7 @@ async function handleAccessSubmit(e) {
         const results = passedResults ?? (grading?.results || []);
         const total = results.filter(r=>r.passed).length;
         const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
-
         setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
-
-        // Unlock next channel ONLY if all 5 were answered (regardless of score)
         const answeredAll = (results.length >= QUESTIONS_PER_RUN);
         if (answeredAll) {
           setCompletedIds(prev => new Set(prev).add(channelId));
@@ -282,20 +262,15 @@ async function handleAccessSubmit(e) {
         setDraft('');
         setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
         setHistory(h=>[...h, {role:'user', content:userText}]);
-
         const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
-
         try {
           const result = await gradeAnswer({ channelId, question:lastQuestion, answer:userText, faqMd });
-
           const nextCount = qCount + 1;
           setQCount(nextCount);
-
           setGrading(g=>{
             const prev = g?.results || [];
             const cur = { qText:lastQuestion, ans:userText, ...result };
             const nextResults = [...prev, cur];
-
             if (nextCount >= QUESTIONS_PER_RUN) {
               endRun(nextResults);
             } else {
@@ -303,16 +278,13 @@ async function handleAccessSubmit(e) {
             }
             return { results: nextResults };
           });
-
         } catch (e) {
           const nextCount = qCount + 1;
           setQCount(nextCount);
-
           setGrading(g=>{
             const prev = g?.results || [];
             const cur = { qText:lastQuestion, ans:userText, passed:false, why:`Grader error: ${e.message}`, matched:[], missing:[], flags:[] };
             const nextResults = [...prev, cur];
-
             if (nextCount >= QUESTIONS_PER_RUN) {
               endRun(nextResults);
             } else {
@@ -323,7 +295,6 @@ async function handleAccessSubmit(e) {
         }
       }
 
-      // Click handler with locking rules
       function trySwitchChannel(targetId, targetIdx){
         if (started && !finished) {
           toast("Finish this run before switching channels.");
@@ -337,39 +308,10 @@ async function handleAccessSubmit(e) {
         setChannelId(targetId);
       }
 
-      // If not unlocked by access code yet, show gate screen and stop
-      if (!accessOk) {
-        return (
-          <div className="min-h-screen grid place-items-center bg-slate-100 p-4">
-            <form onSubmit={handleAccessSubmit} className="w-full max-w-sm bg-white border rounded-2xl p-5 shadow-sm">
-              <div className="text-center mb-4">
-                <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
-                <p className="text-xs text-slate-500 mt-1">Ask your trainer for today’s code.</p>
-              </div>
-              <input
-                className="w-full border rounded px-3 py-2"
-                placeholder="Access code"
-                value={codeDraft}
-                onChange={e=>setCodeDraft(e.target.value)}
-                autoFocus
-              />
-              {accessErr && <div className="text-rose-600 text-xs mt-2">{accessErr}</div>}
-              <button
-                type="submit"
-                className="w-full mt-3 px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50"
-                disabled={checking || !codeDraft.trim()}>
-                {checking ? 'Checking…' : 'Unlock'}
-              </button>
-              <div className="text-[10px] text-slate-400 mt-3">Apex Trader Funding • Access Gate</div>
-            </form>
-          </div>
-        );
-      }
+      if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
 
-      // Render main app after access
       return (
         <div className="grid grid-cols-12 min-h-screen">
-          {/* Sidebar */}
           <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
             <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
             <div className="space-y-1">
@@ -390,82 +332,28 @@ async function handleAccessSubmit(e) {
               })}
             </div>
             <div className="mt-2 h-5 text-xs text-amber-300">{notice}</div>
-            <div className="mt-auto text-[10px] text-slate-500">Apex Trader Funding • Vercel Functions</div>
           </aside>
 
-          {/* Main */}
           <main className="col-span-12 md:col-span-10 p-4 md:p-6 grid gap-3 content-start">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2a.75.75 0 0 1 .7.48l1.26 3.29 3.3 1.26a.75.75 0 0 1 0 1.4l-3.3 1.26-1.26 3.3a.75.75 0 0 1-1.4 0l-1.26-3.3-3.3-1.26a.75.75 0 0 1 0-1.4l3.3-1.26 1.26-3.3a.75.75 0 0 1 .7-.48Z"/></svg>
                 <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
                 {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}
-                  disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
-                  title={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : ''}>
+                  disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}>
                   Start
                 </button>}
-                <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white" onClick={()=>resetRun()}>Reset</button>
               </div>
             </div>
 
             <div className="border rounded-xl overflow-hidden bg-white">
               <div className="px-4 py-3 border-b text-sm text-slate-500">
-                {started ? "Answer 5 questions before the timer runs out." : "Press Start at the top rigth to begin."}
+                {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
               </div>
-              <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
-                {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
-                {typing && <div className="text-xs text-slate-500">Coach is typing…</div>}
-                {!started && <div className="text-xs text-slate-600">You will be given 10 minutes to complete all 5 questions and unlock the next channel.</div>}
-              </div>
-              <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
-                <div className="text-xs text-slate-500">
-                  {started && !finished ? `${qCount}/${QUESTIONS_PER_RUN} answered` : ''}
-                </div>
-                <div className="flex gap-2 items-center w-2/3">
-                  <input className="border rounded px-3 py-1.5 w-full"
-                         placeholder={started && !finished ? "Type your reply and press Enter…" : "Start the run to reply…"}
-                         value={draft}
-                         onChange={e=>setDraft(e.target.value)}
-                         onKeyDown={e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submit(); } }}
-                         disabled={!started || finished}/>
-                  <button className="px-3 py-1.5 rounded bg-emerald-600 text-white disabled:opacity-50"
-                          disabled={!started || finished || !draft.trim()} onClick={submit}>Send</button>
-                </div>
-              </div>
-            </div>
-
-            {grading && grading.results && grading.results.length>0 && (
-              <div className="border rounded-xl bg-white">
-                <div className="px-4 py-3 border-b flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-slate-500">Results</div>
-                    <div className="text-lg font-semibold">
-                      {(grading.results.filter(r=>r.passed).length)}/{QUESTIONS_PER_RUN} correct
-                    </div>
-                  </div>
-                  <div className="text-xs text-slate-500">Passing requires good coverage & no incorrect claims.</div>
-                </div>
-                <div className="p-4 space-y-3">
-                  {grading.results.map((r,idx)=>(
-                    <div key={idx} className="rounded-xl border p-3 bg-slate-50">
-                      <div className="text-xs text-slate-500 mb-1">Question: {r.qText}</div>
-                      <div className="text-sm font-medium">Q{idx+1} • {r.passed ? <span className="text-emerald-600">Correct</span> : <span className="text-rose-600">Needs Work</span>}</div>
-                      <div className="mt-2 text-sm">
-                        <div className="text-slate-500 mb-1">Your reply:</div>
-                        <div className="bg-white rounded-lg border p-3 text-slate-700">{r.ans || r.answer}</div>
-                      </div>
-                      <div className="mt-2 text-xs text-slate-600 space-y-1">
-                        {r.matched?.length>0 && <div>Matched: {r.matched.join(', ')}</div>}
-                        {r.missing?.length>0 && <div>Missing: {r.missing.join(', ')}</div>}
-                        {r.flags?.length>0 && <div className="text-rose-600">Flags: {r.flags.join(', ')}</div>}
-                        {r.why && <div className="italic text-slate-700">Why: {r.why}</div>}
-                      </div>
-                    </div>
-                  ))}
+              <div className="bg-slate-
                 </div>
               </div>
             )}
@@ -474,7 +362,69 @@ async function handleAccessSubmit(e) {
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    function AccessGate({ onAccess }) {
+      const [codeDraft, setCodeDraft] = useState('');
+      const [checking, setChecking] = useState(false);
+      const [accessErr, setAccessErr] = useState('');
+
+      async function handleAccessSubmit(e) {
+        e.preventDefault();
+        if (!codeDraft.trim()) return;
+        setChecking(true);
+        setAccessErr('');
+        try {
+          const r = await fetch(CHECK_ACCESS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeDraft.trim() })
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
+          onAccess();
+          setCodeDraft('');
+        } catch (err) {
+          setAccessErr(err.message || 'Invalid code');
+        } finally {
+          setChecking(false);
+        }
+      }
+
+      return (
+        <div className="h-screen flex items-center justify-center bg-slate-900">
+          <form
+            onSubmit={handleAccessSubmit}
+            className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80"
+          >
+            <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
+            <input
+              className="border rounded px-3 py-2"
+              placeholder="Access code"
+              value={codeDraft}
+              onChange={e => setCodeDraft(e.target.value)}
+            />
+            {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
+            <button
+              type="submit"
+              className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50"
+              disabled={checking}
+            >
+              {checking ? 'Checking…' : 'Enter'}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    function Root() {
+      const [accessOk, setAccessOk] = useState(false);
+
+      if (!accessOk) {
+        return <AccessGate onAccess={() => setAccessOk(true)} />;
+      }
+      return <App />;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
   </script>
 </body>
 </html>
