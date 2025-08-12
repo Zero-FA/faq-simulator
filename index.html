@@ -106,19 +106,19 @@
       return <div className={`w-9 h-9 ${color} text-white rounded-full grid place-items-center font-semibold`}>{variant==="bot"?"C":"T"}</div>;
     }
 
-    function Row({from="bot", text, time}) {
-      const isBot = from==="bot";
-      return (
-        <div className={`flex items-end gap-3 ${isBot?"":"justify-end"}`}>
-          {isBot && <Avatar variant="bot" />}
-          <div className="flex flex-col gap-1 max-w-[70ch]">
-            <div className="text-[10px] text-slate-500">{isBot?"Coach":"Trainee"} • {time}</div>
-            <div className={`bubble ${isBot ? "bg-white" : "bg-emerald-50 border-emerald-200"}`}>{text}</div>
-          </div>
-          {!isBot && <Avatar variant="user" />}
-        </div>
-      );
-    }
+function Row({from="bot", text, time}) {
+  const isBot = from === "bot";
+  return (
+    <div className={`flex items-end gap-3 ${isBot ? "" : "justify-end"}`}>
+      {isBot && <Avatar variant="bot" />}
+      <div className="flex flex-col gap-1 max-w-[70ch]">
+        <div className="text-[10px] text-slate-500">{isBot ? "Coach" : "Trainee"} • {time}</div>
+        <div className={`bubble ${isBot ? "bg-white" : "bg-emerald-50 border-emerald-200"}`}>{text}</div>
+      </div>
+      {!isBot && <Avatar variant="user" />}
+    </div>
+  );
+}
 
     function App() {
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
