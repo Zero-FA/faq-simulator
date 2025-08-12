@@ -1,3 +1,4 @@
+export const config = { runtime: 'nodejs' };
 // /api/coach.js — Vercel Serverless Function (NO AUTH)
 
 // CORS + method handling
