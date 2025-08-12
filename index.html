@@ -112,7 +112,7 @@
         <div className={`flex items-end gap-3 ${isBot?"":"justify-end"}`}>
           {isBot && <Avatar variant="bot" />}
           <div className="flex flex-col gap-1 max-w-[70ch]">
-            <div className="text-[10px] text-slate-500">{isBot?"CoachBot":"Trainee"} • {time}</div>
+            <div className="text-[10px] text-slate-500">{isBot?"Coach":"Trainee"} • {time}</div>
             <div className={`bubble ${isBot ? "bg-white" : "bg-emerald-50 border-emerald-200"}`}>{text}</div>
           </div>
           {!isBot && <Avatar variant="user" />}
