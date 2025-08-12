@@ -1,5 +1,6 @@
 export const config = { runtime: 'nodejs' };
-// Make a signed code for client+channel. Header: X-Admin-Token: <ADMIN_TOKEN>
+// Generates a signed code bound to { clientId, channelId } with an expiry.
+// Header required: X-Admin-Token: <ADMIN_TOKEN>
 
 import crypto from 'crypto';
 
@@ -11,9 +12,9 @@ function sign(payload, secret) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers','Content-Type, X-Admin-Token');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Token');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error:'Method not allowed' });
 
@@ -27,8 +28,10 @@ export default async function handler(req, res) {
     }
 
     let body = req.body;
-    if (typeof body === 'string') try { body = JSON.parse(body) } catch {}
-    const { clientId, channelId, ttlSeconds = 3600 } = body || {};
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body || '{}'); } catch {}
+    }
+    const { clientId, channelId, ttlSeconds = 1800 } = body || {};
     if (!clientId || !channelId) return res.status(400).json({ error:'Missing clientId or channelId' });
 
     const exp = Math.floor(Date.now()/1000) + Math.max(60, Math.min(ttlSeconds, 24*3600));
