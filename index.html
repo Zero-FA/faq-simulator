@@ -32,8 +32,6 @@
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
     const CHECK_ACCESS_URL = '/api/check-access';
-    const HEARTBEAT_URL = '/api/heartbeat';
-    const RELEASE_URL = '/api/release';
 
     const CHANNELS = [
       { id: 'platform-setup',       name: '#platform-setup',       file: '/faqs/platform-setup.md',      dot:'bg-indigo-400' },
@@ -54,12 +52,6 @@
       const r = await fetch(ch.file, { cache:'no-store' });
       if(!r.ok) throw new Error(`Failed to load ${ch.file}: ${r.status}`);
       return await r.text();
-    }
-
-    function authFetch(url, opts={}, sessionId){
-      const headers = new Headers(opts.headers || {});
-      if (sessionId) headers.set('Authorization', `Bearer ${sessionId}`);
-      return fetch(url, { ...opts, headers });
     }
 
     // ================= UI FRAGMENTS =================
@@ -83,7 +75,7 @@
     }
 
     // ================= MAIN APP =================
-    function App({ sessionId }) {
+    function App() {
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
       const [faqMd, setFaqMd] = useState('');
       const [messages, setMessages] = useState([]);
@@ -107,7 +99,6 @@
 
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
-      const heartbeatRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
       // load faq on channel switch (do NOT wipe scores)
@@ -146,29 +137,6 @@
         },1000);
       }
 
-      // HEARTBEAT: start when app mounts (sessionId exists) and stop on unmount
-      useEffect(()=>{
-        if (!sessionId) return;
-        heartbeatRef.current = setInterval(()=>{
-          authFetch(HEARTBEAT_URL, { method:'POST' }, sessionId)
-            .catch(()=>{ /* best-effort; UI stays running */ });
-        }, 15000); // 15s
-        // cleanup on unload/tab hide (best-effort release)
-        const cleanup = () => {
-          navigator.sendBeacon?.(RELEASE_URL, new Blob([], { type: 'application/json' }));
-          // Fallback (non-blocking)
-          authFetch(RELEASE_URL, { method:'POST', keepalive:true }, sessionId).catch(()=>{});
-        };
-        window.addEventListener('beforeunload', cleanup);
-        document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'hidden') cleanup(); });
-
-        return ()=>{
-          if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-          window.removeEventListener('beforeunload', cleanup);
-          document.removeEventListener('visibilitychange', ()=>{});
-        };
-      }, [sessionId]);
-
       async function startRun(){
         setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
         startTimer();
@@ -187,11 +155,12 @@
             setHistory(h=>[...h, {role:'assistant', content:text}]);
             return;
           }
-          const res = await authFetch(COACH_URL, {
+          const res = await fetch(COACH_URL, {
             method: 'POST',
             headers: { 'Content-Type':'application/json' },
+            // pass channel name or id; server supports name
             body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
-          }, sessionId);
+          });
           const txt = await res.text();
           let data;
           try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
@@ -206,8 +175,8 @@
         }
       }
 
-      // finish run, save results for this channel, unlock next, and RELEASE lock
-      async function endRun(passedResults){
+      // finish run, save results for this channel, unlock next
+      function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
         setFinished(true);
@@ -229,11 +198,6 @@
           const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
           setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
         }
-
-        // BEST-EFFORT release on finish
-        try {
-          await authFetch(RELEASE_URL, { method:'POST' }, sessionId);
-        } catch {}
       }
 
       // submit trainee answer -> grade -> maybe next or end
@@ -246,11 +210,11 @@
 
         const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
         try {
-          const res = await authFetch(GRADE_URL, {
+          const res = await fetch(GRADE_URL, {
             method: 'POST',
             headers: { 'Content-Type':'application/json' },
             body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, question:lastQuestion, answer:userText, faqMd })
-          }, sessionId);
+          });
           const graded = await res.json();
           const nextCount = qCount + 1;
           setQCount(nextCount);
@@ -425,8 +389,8 @@
             body: JSON.stringify({ code: codeDraft.trim() })
           });
           const data = await r.json().catch(() => ({}));
-          if (!r.ok || !data?.ok || !data?.sessionId) throw new Error(data?.error || 'Invalid code');
-          onAccess(data.sessionId); // hand session to Root
+          if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
+          onAccess(); // no persistence: asks again on refresh
           setCodeDraft('');
         } catch (err) {
           setAccessErr(err.message || 'Invalid code');
@@ -449,11 +413,11 @@
       );
     }
 
-    // Root: gate → app (with session)
+    // Root: gate → app
     function Root() {
-      const [sessionId, setSessionId] = useState('');
-      if (!sessionId) return <AccessGate onAccess={(sid)=> setSessionId(sid)} />;
-      return <App sessionId={sessionId} />;
+      const [accessOk, setAccessOk] = useState(false);
+      if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
+      return <App />;
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
