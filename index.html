@@ -282,7 +282,7 @@
               <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
                 {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
                 {typing && <div className="text-xs text-slate-500">CoachBot is typing…</div>}
-                {!started && <div className="text-xs text-slate-600">Coach will pull from the relative FAQs under the channels topic. You’ll be graded on accuracy.</div>}
+                {!started && <div className="text-xs text-slate-600">Coach will pull from the relative FAQs under the channels topic. You’ll be graded on accuracy and given 10 minutes to answer five questions.</div>}
               </div>
               <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
                 <div className="text-xs text-slate-500">
