@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Apex Trader Funding</title>
+  <title>FAQ Speedrun</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -165,7 +165,7 @@
           setSecondsLeft(prev=>{
             if(prev<=1){
               clearInterval(timerRef.current);
-              endRun();
+              endRun(); // timer-out uses whatever grading exists
               return 0;
             }
             return prev-1;
@@ -198,6 +198,20 @@
         }
       }
 
+      // NOTE: endRun now accepts optional results to avoid race conditions.
+      function endRun(passedResults){
+        if (finished) return;
+        if (timerRef.current) clearInterval(timerRef.current);
+        setFinished(true);
+
+        const results = passedResults ?? (grading?.results || []);
+        const total = results.filter(r=>r.passed).length;
+        const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
+
+        // Post the final banner using the results we just computed
+        setMessages(m=>[...m, {from:'bot', text:`Speedrun complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+      }
+
       async function submit(){
         if (!draft.trim() || !started || finished) return;
         const userText = draft.trim();
@@ -206,39 +220,46 @@
         setHistory(h=>[...h, {role:'user', content:userText}]);
 
         const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+
         try {
           const result = await gradeAnswer({ channelId, question:lastQuestion, answer:userText, faqMd });
+
+          const nextCount = qCount + 1;
+          setQCount(nextCount);
+
+          // Build next results and decide completion *inside* the same tick
           setGrading(g=>{
             const prev = g?.results || [];
             const cur = { qText:lastQuestion, ans:userText, ...result };
-            return { results:[...prev, cur] };
+            const nextResults = [...prev, cur];
+
+            // If this was the last question, end the run using these results (no stale state)
+            if (nextCount >= QUESTIONS_PER_RUN) {
+              endRun(nextResults);
+            } else {
+              // otherwise queue next question
+              askNext();
+            }
+            return { results: nextResults };
           });
+
         } catch (e) {
+          const nextCount = qCount + 1;
+          setQCount(nextCount);
+
           setGrading(g=>{
             const prev = g?.results || [];
-            return { results:[...prev, { qText:lastQuestion, ans:userText, passed:false, why:`Grader error: ${e.message}`, matched:[], missing:[], flags:[] }] };
+            const cur = { qText:lastQuestion, ans:userText, passed:false, why:`Grader error: ${e.message}`, matched:[], missing:[], flags:[] };
+            const nextResults = [...prev, cur];
+
+            if (nextCount >= QUESTIONS_PER_RUN) {
+              endRun(nextResults);
+            } else {
+              askNext();
+            }
+            return { results: nextResults };
           });
         }
-
-        const nextCount = qCount + 1;
-        setQCount(nextCount);
-
-        if (nextCount >= QUESTIONS_PER_RUN){
-          endRun();
-        } else {
-          await askNext();
-        }
-      }
-
-      function endRun(){
-        if (finished) return;
-        setFinished(true);
-        if (timerRef.current) clearInterval(timerRef.current);
-        setTimeout(()=>{
-          const total = (grading?.results || []).filter(r=>r.passed).length;
-          const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
-          setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
-        }, 150);
       }
 
       // Render
@@ -257,7 +278,7 @@
                 </div>
               ))}
             </div>
-            <div className="mt-auto text-[10px] text-slate-500">Apex Trader Funding • Vercel Functions</div>
+            <div className="mt-auto text-[10px] text-slate-500">FAQ Speedrun • Vercel Functions</div>
           </aside>
 
           {/* Main */}
@@ -265,7 +286,7 @@
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2a.75.75 0 0 1 .7.48l1.26 3.29 3.3 1.26a.75.75 0 0 1 0 1.4l-3.3 1.26-1.26 3.3a.75.75 0 0 1-1.4 0l-1.26-3.3-3.3-1.26a.75.75 0 0 1 0-1.4l3.3-1.26 1.26-3.3a.75.75 0 0 1 .7-.48Z"/></svg>
-                <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
+                <h1 className="text-xl font-semibold">FAQ Speedrun</h1>
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
@@ -277,12 +298,12 @@
 
             <div className="border rounded-xl overflow-hidden bg-white">
               <div className="px-4 py-3 border-b text-sm text-slate-500">
-                {started ? "Answer 5 questions before the timer runs out." : "Press Start at the top right to begin."}
+                {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
               </div>
               <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
                 {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
                 {typing && <div className="text-xs text-slate-500">CoachBot is typing…</div>}
-                {!started && <div className="text-xs text-slate-600">Coach will pull from the relative FAQs under the channels topic. You’ll be graded on accuracy and given 10 minutes to answer five questions.</div>}
+                {!started && <div className="text-xs text-slate-600">The coach pulls your channel’s FAQ and asks randomized assessment questions. You’ll be graded on accuracy.</div>}
               </div>
               <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
                 <div className="text-xs text-slate-500">
