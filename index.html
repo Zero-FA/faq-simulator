@@ -46,12 +46,12 @@
 
     // ============== HELPERS ==============
     async function fetchFAQMd(channelId){
-  const ch = CHANNELS.find(c=>c.id===channelId);
-  if(!ch) throw new Error('Unknown channel');
-  const r = await fetch(ch.file, { cache:'no-store' });
-  if(!r.ok) throw new Error(`Failed to load ${ch.file}: ${r.status}`);
-  return await r.text();
-}
+      const ch = CHANNELS.find(c=>c.id===channelId);
+      if(!ch) throw new Error('Unknown channel');
+      const r = await fetch(ch.file, { cache:'no-store' });
+      if(!r.ok) throw new Error(`Failed to load ${ch.file}: ${r.status}`);
+      return await r.text();
+    }
 
     function pickQuestionFromMd(md) {
       if (!md) return "What's the first step to get started?";
@@ -60,7 +60,7 @@
       const list = candidates.length ? candidates : lines.slice(0, 20);
       const raw = list[Math.floor(Math.random() * list.length)];
       const q = raw.replace(/^#+\s*/, "");
-      return /[?.!]$/.test(q) ? q : ${q}?;
+      return /[?.!]$/.test(q) ? q : `${q}?`;
     }
 
     async function coachAsk({ history, channelId, faqMd }) {
@@ -79,8 +79,8 @@
 
       const txt = await r.text();
       let data;
-      try { data = JSON.parse(txt); } catch { throw new Error(Coach ${r.status}: ${txt}); }
-      if (!r.ok) throw new Error(data?.error || Coach ${r.status});
+      try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${r.status}: ${txt}`); }
+      if (!r.ok) throw new Error(data?.error || `Coach ${r.status}`);
       return data.reply; // { role, content }
     }
 
@@ -95,24 +95,25 @@
 
       const txt = await r.text();
       let data;
-      try { data = JSON.parse(txt); } catch { throw new Error(Grader ${r.status}: ${txt}); }
-      if (!r.ok) throw new Error(data?.error || Grader ${r.status});
+      try { data = JSON.parse(txt); } catch { throw new Error(`Grader ${r.status}: ${txt}`); }
+      if (!r.ok) throw new Error(data?.error || `Grader ${r.status}`);
       return data; // {passed, why, matched, missing, flags}
     }
 
     // ================= UI =================
     function Avatar({variant="bot"}) {
       const color = variant==="bot" ? "bg-indigo-500" : "bg-emerald-500";
-      return <div className={w-9 h-9 ${color} text-white rounded-full grid place-items-center font-semibold}>{variant==="bot"?"C":"T"}</div>;
+      return <div className={`w-9 h-9 ${color} text-white rounded-full grid place-items-center font-semibold`}>{variant==="bot"?"C":"T"}</div>;
     }
+
     function Row({from="bot", text, time}) {
       const isBot = from==="bot";
       return (
-        <div className={flex items-end gap-3 ${isBot?"":"justify-end"}}>
+        <div className={`flex items-end gap-3 ${isBot?"":"justify-end"}`}>
           {isBot && <Avatar variant="bot" />}
           <div className="flex flex-col gap-1 max-w-[70ch]">
             <div className="text-[10px] text-slate-500">{isBot?"CoachBot":"Trainee"} • {time}</div>
-            <div className={bubble ${isBot ? "bg-white" : "bg-emerald-50 border-emerald-200"}}>{text}</div>
+            <div className={`bubble ${isBot ? "bg-white" : "bg-emerald-50 border-emerald-200"}`}>{text}</div>
           </div>
           {!isBot && <Avatar variant="user" />}
         </div>
@@ -180,7 +181,7 @@
         await askNext();
       }
 
-      const mmss = s => ${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')};
+      const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
       async function askNext(){
         if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
@@ -191,7 +192,7 @@
           setMessages(m=>[...m, {from:'bot', text, time: now()}]);
           setHistory(h=>[...h, {role:'assistant', content:text}]);
         } catch (e) {
-          setMessages(m=>[...m, {from:'bot', text:Coach error: ${e.message}, time: now()}]);
+          setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
         } finally {
           setTyping(false);
         }
@@ -215,7 +216,7 @@
         } catch (e) {
           setGrading(g=>{
             const prev = g?.results || [];
-            return { results:[...prev, { qText:lastQuestion, ans:userText, passed:false, why:Grader error: ${e.message}, matched:[], missing:[], flags:[] }] };
+            return { results:[...prev, { qText:lastQuestion, ans:userText, passed:false, why:`Grader error: ${e.message}`, matched:[], missing:[], flags:[] }] };
           });
         }
 
@@ -236,7 +237,7 @@
         setTimeout(()=>{
           const total = (grading?.results || []).filter(r=>r.passed).length;
           const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
-          setMessages(m=>[...m, {from:'bot', text:Speedrun complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%)., time: now()}]);
+          setMessages(m=>[...m, {from:'bot', text:`Speedrun complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
         }, 150);
       }
 
@@ -249,9 +250,9 @@
             <div className="space-y-1">
               {CHANNELS.map(ch=>(
                 <div key={ch.id}
-                     className={ch-item ${channelId===ch.id?'active hover:bg-slate-800':'hover:bg-slate-800/60'}}
+                     className={`ch-item ${channelId===ch.id?'active hover:bg-slate-800':'hover:bg-slate-800/60'}`}
                      onClick={()=>setChannelId(ch.id)}>
-                  <span className={dot ${ch.dot}}></span>
+                  <span className={`dot ${ch.dot}`}></span>
                   <span>{ch.name}</span>
                 </div>
               ))}
@@ -268,7 +269,7 @@
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className={text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}}>{mmss(secondsLeft)}</div>
+                <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
                 {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}>Start</button>}
                 <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white" onClick={()=>resetRun()}>Reset</button>
               </div>
@@ -276,7 +277,7 @@
 
             <div className="border rounded-xl overflow-hidden bg-white">
               <div className="px-4 py-3 border-b text-sm text-slate-500">
-                {started ? Answer 5 questions before the timer runs out. : Press Start to begin.}
+                {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
               </div>
               <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
                 {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
@@ -285,7 +286,7 @@
               </div>
               <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
                 <div className="text-xs text-slate-500">
-                  {started && !finished ? ${qCount}/${QUESTIONS_PER_RUN} answered : ''}
+                  {started && !finished ? `${qCount}/${QUESTIONS_PER_RUN} answered` : ''}
                 </div>
                 <div className="flex gap-2 items-center w-2/3">
                   <input className="border rounded px-3 py-1.5 w-full"
