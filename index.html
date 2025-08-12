@@ -31,7 +31,7 @@
     const USE_MOCK = false;
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
-    const CHECK_CODE_URL = '/api/check-code';
+    const CHECK_ACCESS_URL = '/api/check-access';
 
     const CHANNELS = [
       { id: 'platform-setup',       name: '#platform-setup',       file: '/faqs/platform-setup.md',      dot:'bg-indigo-400' },
@@ -128,6 +128,13 @@
     }
 
     function App() {
+      // Access gate
+      const [accessOk, setAccessOk] = useState(false);
+      const [codeDraft, setCodeDraft] = useState('');
+      const [checking, setChecking] = useState(false);
+      const [accessErr, setAccessErr] = useState('');
+
+      // Core app state
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
       const [faqMd, setFaqMd] = useState('');
       const [messages, setMessages] = useState([]);
@@ -140,41 +147,50 @@
       const [typing, setTyping] = useState(false);
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
-      // sequential locking
+      // Sequential locking
       const [unlockedIdx, setUnlockedIdx] = useState(0);
       const [completedIds, setCompletedIds] = useState(new Set());
       const [notice, setNotice] = useState('');
-
-      // code gate (persisted)
-      const [clientId, setClientId] = useState('');
-      const [verifiedChannels, setVerifiedChannels] = useState(new Set());
 
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      // init + restore
+      // Restore access
       useEffect(()=>{
-        let cid = localStorage.getItem('faqsr:clientId');
-        if (!cid) { cid = randomId(16); localStorage.setItem('faqsr:clientId', cid); }
-        setClientId(cid);
-
-        const u = localStorage.getItem('faqsr:unlockedIdx');
-        const done = localStorage.getItem('faqsr:completedIds');
-        const ver = localStorage.getItem('faqsr:verifiedChannels');
-        if (u) setUnlockedIdx(parseInt(u,10) || 0);
-        if (done) setCompletedIds(new Set(JSON.parse(done)));
-        if (ver) setVerifiedChannels(new Set(JSON.parse(ver)));
+        const ok = localStorage.getItem('faqsr:access') === 'ok';
+        if (ok) setAccessOk(true);
       }, []);
 
-      useEffect(()=>{
-        localStorage.setItem('faqsr:unlockedIdx', String(unlockedIdx));
-        localStorage.setItem('faqsr:completedIds', JSON.stringify([...completedIds]));
-        localStorage.setItem('faqsr:verifiedChannels', JSON.stringify([...verifiedChannels]));
-      }, [unlockedIdx, completedIds, verifiedChannels]);
+      async function handleAccessSubmit(e){
+        e?.preventDefault?.();
+        if (!codeDraft.trim()) return;
+        setChecking(true);
+        setAccessErr('');
+        try{
+          const r = await fetch(CHECK_ACCESS_URL, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ code: codeDraft.trim() })
+          });
+          const ok = r.ok;
+          const data = await r.json().catch(()=>({}));
+          if (!ok || !data?.ok) {
+            throw new Error(data?.error || 'Invalid code');
+          }
+          localStorage.setItem('faqsr:access', 'ok');
+          setAccessOk(true);
+          setCodeDraft('');
+        } catch(err){
+          setAccessErr(err.message || 'Invalid code');
+        } finally {
+          setChecking(false);
+        }
+      }
 
-      // Load FAQ on channel switch
+      // Load FAQ when channel changes
       useEffect(()=>{
+        if (!accessOk) return;
         (async ()=>{
           try {
             const md = await fetchFAQMd(channelId);
@@ -184,11 +200,14 @@
             console.error(e);
           }
         })();
-      }, [channelId]);
+      }, [channelId, accessOk]);
 
       useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
 
-      function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
+      function toast(msg){
+        setNotice(msg);
+        setTimeout(()=>setNotice(''), 1800);
+      }
 
       function resetRun(clearMsgs=true){
         if (timerRef.current) clearInterval(timerRef.current);
@@ -204,7 +223,7 @@
           setSecondsLeft(prev=>{
             if(prev<=1){
               clearInterval(timerRef.current);
-              endRun();
+              endRun(); // timer out uses whatever results exist
               return 0;
             }
             return prev-1;
@@ -237,7 +256,7 @@
         }
       }
 
-      // Finalize run + unlock next channel
+      // End run; also unlock next channel if this one is fully answered
       function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -249,48 +268,12 @@
 
         setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
 
-        if (results.length >= QUESTIONS_PER_RUN) {
+        // Unlock next channel ONLY if all 5 were answered (regardless of score)
+        const answeredAll = (results.length >= QUESTIONS_PER_RUN);
+        if (answeredAll) {
           setCompletedIds(prev => new Set(prev).add(channelId));
           const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
           setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
-        }
-      }
-
-      // Code-checked start
-      async function requestCodeAndStart(){
-        const i = CHANNELS.findIndex(c=>c.id===channelId);
-        if (i > unlockedIdx) { toast('Locked. Complete the previous channel first.'); return; }
-
-        // If already verified for this channel, just start
-        if (verifiedChannels.has(channelId)) {
-          startRun();
-          return;
-        }
-
-        const code = prompt('Enter your access code for this channel:');
-        if (!code) return;
-
-        try{
-          const r = await fetch(CHECK_CODE_URL, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ clientId, channelId, code: code.trim() })
-          });
-          const ok = r.ok;
-          const data = await r.json().catch(()=>({}));
-          if (!ok) throw new Error(data?.error || 'Invalid code');
-
-          // mark verified for this channel
-          setVerifiedChannels(prev => {
-            const next = new Set(prev);
-            next.add(channelId);
-            return next;
-          });
-
-          toast('Code verified. Starting…');
-          startRun();
-        } catch(e){
-          toast(`Code error: ${e.message}`);
         }
       }
 
@@ -343,13 +326,48 @@
 
       // Click handler with locking rules
       function trySwitchChannel(targetId, targetIdx){
-        if (started && !finished) { toast("Finish this run before switching channels."); return; }
+        if (started && !finished) {
+          toast("Finish this run before switching channels.");
+          return;
+        }
         const locked = targetIdx > unlockedIdx;
-        if (locked) { toast("Locked. Complete the previous channel first."); return; }
+        if (locked) {
+          toast("Locked. Complete the previous channel first.");
+          return;
+        }
         setChannelId(targetId);
       }
 
-      // Render
+      // If not unlocked by access code yet, show gate screen and stop
+      if (!accessOk) {
+        return (
+          <div className="min-h-screen grid place-items-center bg-slate-100 p-4">
+            <form onSubmit={handleAccessSubmit} className="w-full max-w-sm bg-white border rounded-2xl p-5 shadow-sm">
+              <div className="text-center mb-4">
+                <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
+                <p className="text-xs text-slate-500 mt-1">Ask your trainer for today’s code.</p>
+              </div>
+              <input
+                className="w-full border rounded px-3 py-2"
+                placeholder="Access code"
+                value={codeDraft}
+                onChange={e=>setCodeDraft(e.target.value)}
+                autoFocus
+              />
+              {accessErr && <div className="text-rose-600 text-xs mt-2">{accessErr}</div>}
+              <button
+                type="submit"
+                className="w-full mt-3 px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50"
+                disabled={checking || !codeDraft.trim()}>
+                {checking ? 'Checking…' : 'Unlock'}
+              </button>
+              <div className="text-[10px] text-slate-400 mt-3">Apex Trader Funding • Access Gate</div>
+            </form>
+          </div>
+        );
+      }
+
+      // Render main app after access
       return (
         <div className="grid grid-cols-12 min-h-screen">
           {/* Sidebar */}
@@ -386,18 +404,12 @@
               </div>
               <div className="flex items-center gap-3">
                 <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
-                {!started && (
-                  <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500"
-                          onClick={requestCodeAndStart}
-                          disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
-                          title={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : ''}>
-                    Start
-                  </button>
-                )}
-                <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white"
-                        onClick={()=>resetRun()}>
-                  Reset
-                </button>
+                {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}
+                  disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+                  title={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : ''}>
+                  Start
+                </button>}
+                <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white" onClick={()=>resetRun()}>Reset</button>
               </div>
             </div>
 
