@@ -1,5 +1,7 @@
 export const config = { runtime: 'nodejs' };
-// /api/grader.js — Vercel Serverless Function (NO AUTH)
+// /api/grader.js — Vercel Serverless Function
+
+import { requireSession } from './_session';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,6 +9,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // NEW: session enforcement
+  const sess = await requireSession(req, res);
+  if (!sess) return;
 
   try {
     if (!process.env.OPENAI_API_KEY) {
