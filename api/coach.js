@@ -1,7 +1,6 @@
 export const config = { runtime: 'nodejs' };
 // /api/coach.js — Vercel Serverless Function (NO AUTH)
 
-// CORS + method handling
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -33,24 +32,24 @@ export default async function handler(req, res) {
     })).sort((a, b) => b.score - a.score);
     const context = ranked.slice(0, 2).map(r => r.c).join('\n---\n');
 
-    const system = 
+    const system = `
 You are CoachBot for a futures prop firm training sim.
 ONLY use the FAQ context provided. If it's not in the context, ask about a different detail from the context.
 Ask exactly ONE concise, realistic question a trainee should be able to answer from the FAQ.
 Avoid yes/no questions; prefer "how / what / when" style. Do not include the answer.
 Channel: ${channel}
-.trim();
+`.trim();
 
     const messages = [
       { role: 'system', content: system },
-      { role: 'user', content: FAQ CONTEXT (Markdown):\n${context} },
+      { role: 'user', content: `FAQ CONTEXT (Markdown):\n${context}` },
       ...(Array.isArray(history) ? history : [])
     ];
 
     const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': Bearer ${process.env.OPENAI_API_KEY},
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
