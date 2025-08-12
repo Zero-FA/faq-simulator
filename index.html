@@ -31,8 +31,6 @@
     const USE_MOCK = false;
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
-    const REQUEST_URL = '/api/request-code';
-    const VERIFY_URL  = '/api/verify-code';
 
     const CHANNELS = [
       { id: 'platform-setup',       name: '#platform-setup',       file: '/faqs/platform-setup.md',      dot:'bg-indigo-400' },
@@ -102,13 +100,6 @@
       return data;
     }
 
-    // small util
-    function randomId(len=16){
-      const arr = new Uint8Array(len);
-      (crypto || window.msCrypto).getRandomValues(arr);
-      return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
-    }
-
     // ================= UI =================
     function Avatar({variant="bot"}) {
       const color = variant==="bot" ? "bg-indigo-500" : "bg-emerald-500";
@@ -142,41 +133,14 @@
       const [typing, setTyping] = useState(false);
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
-      // sequential gating
-      const [unlockedIdx, setUnlockedIdx] = useState(0);
-      const [completedIds, setCompletedIds] = useState(new Set());
-      const [notice, setNotice] = useState('');
-
-      // code gate
-      const [clientId, setClientId] = useState('');
-      const [codeInput, setCodeInput] = useState('');
-      const [verifiedChannels, setVerifiedChannels] = useState(new Set());
-      const [requesting, setRequesting] = useState(false);
-      const [verifying, setVerifying] = useState(false);
+      // NEW: sequential gating state
+      const [unlockedIdx, setUnlockedIdx] = useState(0);           // highest unlocked channel index (starts at 0)
+      const [completedIds, setCompletedIds] = useState(new Set()); // set of channel ids fully completed
+      const [notice, setNotice] = useState('');                    // small toast/notice text
 
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
-      // init ids + restore persisted state
-      useEffect(()=>{
-        let cid = localStorage.getItem('faqsr:clientId');
-        if (!cid) { cid = randomId(16); localStorage.setItem('faqsr:clientId', cid); }
-        setClientId(cid);
-
-        const u = localStorage.getItem('faqsr:unlockedIdx');
-        const done = localStorage.getItem('faqsr:completedIds');
-        const ver = localStorage.getItem('faqsr:verifiedChannels');
-        if (u) setUnlockedIdx(parseInt(u, 10) || 0);
-        if (done) setCompletedIds(new Set(JSON.parse(done)));
-        if (ver) setVerifiedChannels(new Set(JSON.parse(ver)));
-      }, []);
-
-      useEffect(()=>{
-        localStorage.setItem('faqsr:unlockedIdx', String(unlockedIdx));
-        localStorage.setItem('faqsr:completedIds', JSON.stringify([...completedIds]));
-        localStorage.setItem('faqsr:verifiedChannels', JSON.stringify([...verifiedChannels]));
-      }, [unlockedIdx, completedIds, verifiedChannels]);
 
       // Load FAQ when channel changes
       useEffect(()=>{
@@ -193,7 +157,10 @@
 
       useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
 
-      function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 2000); }
+      function toast(msg){
+        setNotice(msg);
+        setTimeout(()=>setNotice(''), 1800);
+      }
 
       function resetRun(clearMsgs=true){
         if (timerRef.current) clearInterval(timerRef.current);
@@ -209,7 +176,7 @@
           setSecondsLeft(prev=>{
             if(prev<=1){
               clearInterval(timerRef.current);
-              endRun();
+              endRun(); // timer out uses whatever results exist
               return 0;
             }
             return prev-1;
@@ -242,6 +209,7 @@
         }
       }
 
+      // End run; also unlock next channel if this one is fully answered
       function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -253,7 +221,7 @@
 
         setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
 
-        // Unlock next channel ONLY if all 5 were answered
+        // Unlock next channel ONLY if all 5 were answered (regardless of score)
         const answeredAll = (results.length >= QUESTIONS_PER_RUN);
         if (answeredAll) {
           setCompletedIds(prev => new Set(prev).add(channelId));
@@ -309,59 +277,19 @@
         }
       }
 
-      // --- CODE GATE actions ---
-      async function requestCode(){
-        setRequesting(true);
-        try{
-          const r = await fetch(REQUEST_URL, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ clientId, channelId })
-          });
-          const ok = r.ok;
-          const data = await r.json().catch(()=>({}));
-          if (!ok) throw new Error(data?.error || 'Request failed');
-          toast('Code requested. Wait for your trainer.');
-        } catch(e){
-          toast(`Request error: ${e.message}`);
-        } finally {
-          setRequesting(false);
-        }
-      }
-
-      async function verifyCode(){
-        if (!codeInput.trim()) { toast('Enter the code.'); return; }
-        setVerifying(true);
-        try{
-          const r = await fetch(VERIFY_URL, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ clientId, channelId, code: codeInput.trim() })
-          });
-          const ok = r.ok;
-          const data = await r.json().catch(()=>({}));
-          if (!ok) throw new Error(data?.error || 'Invalid code');
-          setVerifiedChannels(prev => new Set(prev).add(channelId));
-          setCodeInput('');
-          toast('Code verified. You can start.');
-        } catch(e){
-          toast(`Verify error: ${e.message}`);
-        } finally {
-          setVerifying(false);
-        }
-      }
-
       // Click handler with locking rules
       function trySwitchChannel(targetId, targetIdx){
-        if (started && !finished) { toast("Finish this run before switching channels."); return; }
+        if (started && !finished) {
+          toast("Finish this run before switching channels.");
+          return;
+        }
         const locked = targetIdx > unlockedIdx;
-        if (locked) { toast("Locked. Complete the previous channel first."); return; }
+        if (locked) {
+          toast("Locked. Complete the previous channel first.");
+          return;
+        }
         setChannelId(targetId);
       }
-
-      const idx = CHANNELS.findIndex(c=>c.id===channelId);
-      const channelLocked = idx > unlockedIdx;
-      const channelVerified = verifiedChannels.has(channelId);
 
       // Render
       return (
@@ -370,13 +298,13 @@
           <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
             <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
             <div className="space-y-1">
-              {CHANNELS.map((ch, i)=>{
+              {CHANNELS.map((ch, idx)=>{
                 const isActive = channelId===ch.id;
-                const locked = i > unlockedIdx;
+                const locked = idx > unlockedIdx;
                 return (
                   <div key={ch.id}
                        className={`ch-item ${isActive?'active hover:bg-slate-800':'hover:bg-slate-800/60'} ${locked?'opacity-40 cursor-not-allowed':''}`}
-                       onClick={()=>trySwitchChannel(ch.id, i)}
+                       onClick={()=>trySwitchChannel(ch.id, idx)}
                        title={locked ? 'Locked until you complete the previous channel.' : ''}>
                     <span className={`dot ${ch.dot}`}></span>
                     <span className="truncate">{ch.name}</span>
@@ -400,33 +328,12 @@
               </div>
               <div className="flex items-center gap-3">
                 <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
-
-                {/* Code gate UI */}
-                {!started && !channelLocked && !channelVerified && (
-                  <div className="flex items-center gap-2">
-                    <input className="border rounded px-2 py-1 text-sm" placeholder="Enter code" value={codeInput} onChange={e=>setCodeInput(e.target.value)} />
-                    <button className="px-2 py-1 rounded bg-emerald-600 text-white disabled:opacity-50" onClick={verifyCode} disabled={verifying || !codeInput.trim()}>
-                      {verifying ? 'Verifying…' : 'Verify'}
-                    </button>
-                    <button className="px-2 py-1 rounded border border-slate-300 hover:bg-white disabled:opacity-50" onClick={requestCode} disabled={requesting}>
-                      {requesting ? 'Requesting…' : 'Request code'}
-                    </button>
-                  </div>
-                )}
-
-                {/* Start button (only if verified) */}
-                {!started && !channelLocked && channelVerified && (
-                  <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}>
-                    Start
-                  </button>
-                )}
-
-                {/* Reset (disabled during run) */}
-                <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white disabled:opacity-50"
-                        onClick={()=>resetRun()}
-                        disabled={started && !finished}>
-                  Reset
-                </button>
+                {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}
+                  disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+                  title={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : ''}>
+                  Start
+                </button>}
+                <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white" onClick={()=>resetRun()}>Reset</button>
               </div>
             </div>
 
@@ -485,7 +392,7 @@
                     </div>
                   ))}
                 </div>
-                <!-- Removed "Run Again" button to avoid easy retries -->
+                {/* Run Again button removed */}
               </div>
             )}
           </main>
