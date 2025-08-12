@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FAQ Speedrun</title>
+  <title>Apex Trader Funding</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,7 +19,7 @@
 <body class="bg-slate-100">
   <div id="root" class="min-h-screen"></div>
 
-  <!-- React + Babel (simple static app) -->
+  <!-- React + Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -28,7 +28,7 @@
     const { useState, useEffect, useRef } = React;
 
     // ================= CONFIG =================
-    const USE_MOCK = false;              // must be false to use the API routes
+    const USE_MOCK = false;
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
 
@@ -73,7 +73,7 @@
 
       const r = await fetch(COACH_URL, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' }, // no auth header
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ channel: channelName, history, faqMd })
       });
 
@@ -81,7 +81,7 @@
       let data;
       try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${r.status}: ${txt}`); }
       if (!r.ok) throw new Error(data?.error || `Coach ${r.status}`);
-      return data.reply; // { role, content }
+      return data.reply;
     }
 
     async function gradeAnswer({ channelId, question, answer, faqMd }) {
@@ -89,7 +89,7 @@
 
       const r = await fetch(GRADE_URL, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' }, // no auth header
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ channel: channelName, question, answer, faqMd })
       });
 
@@ -97,7 +97,7 @@
       let data;
       try { data = JSON.parse(txt); } catch { throw new Error(`Grader ${r.status}: ${txt}`); }
       if (!r.ok) throw new Error(data?.error || `Grader ${r.status}`);
-      return data; // {passed, why, matched, missing, flags}
+      return data;
     }
 
     // ================= UI =================
@@ -132,17 +132,23 @@
       const [grading, setGrading] = useState(null);
       const [typing, setTyping] = useState(false);
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
+
+      // NEW: sequential gating state
+      const [unlockedIdx, setUnlockedIdx] = useState(0);           // highest unlocked channel index (starts at 0)
+      const [completedIds, setCompletedIds] = useState(new Set()); // set of channel ids fully completed
+      const [notice, setNotice] = useState('');                    // small toast/notice text
+
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      // load faq when channel changes — reset run so questions are channel-specific
+      // Load FAQ when channel changes
       useEffect(()=>{
         (async ()=>{
           try {
             const md = await fetchFAQMd(channelId);
             setFaqMd(md);
-            resetRun(true); // hard reset when switching channels
+            resetRun(true);
           } catch(e){
             console.error(e);
           }
@@ -150,6 +156,11 @@
       }, [channelId]);
 
       useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
+
+      function toast(msg){
+        setNotice(msg);
+        setTimeout(()=>setNotice(''), 1800);
+      }
 
       function resetRun(clearMsgs=true){
         if (timerRef.current) clearInterval(timerRef.current);
@@ -165,7 +176,7 @@
           setSecondsLeft(prev=>{
             if(prev<=1){
               clearInterval(timerRef.current);
-              endRun(); // timer-out uses whatever grading exists
+              endRun(); // timer out uses whatever results exist
               return 0;
             }
             return prev-1;
@@ -177,7 +188,7 @@
         setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]);
         setHistory([]);
         startTimer();
-        setMessages([{from:'bot', text:"I’ll ask you 5 quick questions. Answer using the FAQ. Ready?", time: now()}]);
+        setMessages([{from:'bot', text:"I’ll ask you 5 quick questions. Answer using the FAQs. Ready?", time: now()}]);
         await askNext();
       }
 
@@ -198,7 +209,7 @@
         }
       }
 
-      // NOTE: endRun now accepts optional results to avoid race conditions.
+      // End run; also unlock next channel if this one is fully answered
       function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -208,8 +219,15 @@
         const total = results.filter(r=>r.passed).length;
         const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
 
-        // Post the final banner using the results we just computed
-        setMessages(m=>[...m, {from:'bot', text:`Speedrun complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+        setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+
+        // Unlock next channel ONLY if all 5 were answered (regardless of score)
+        const answeredAll = (results.length >= QUESTIONS_PER_RUN);
+        if (answeredAll) {
+          setCompletedIds(prev => new Set(prev).add(channelId));
+          const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
+          setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
+        }
       }
 
       async function submit(){
@@ -227,17 +245,14 @@
           const nextCount = qCount + 1;
           setQCount(nextCount);
 
-          // Build next results and decide completion *inside* the same tick
           setGrading(g=>{
             const prev = g?.results || [];
             const cur = { qText:lastQuestion, ans:userText, ...result };
             const nextResults = [...prev, cur];
 
-            // If this was the last question, end the run using these results (no stale state)
             if (nextCount >= QUESTIONS_PER_RUN) {
               endRun(nextResults);
             } else {
-              // otherwise queue next question
               askNext();
             }
             return { results: nextResults };
@@ -262,6 +277,20 @@
         }
       }
 
+      // Click handler with locking rules
+      function trySwitchChannel(targetId, targetIdx){
+        if (started && !finished) {
+          toast("Finish this run before switching channels.");
+          return;
+        }
+        const locked = targetIdx > unlockedIdx;
+        if (locked) {
+          toast("Locked. Complete the previous channel first.");
+          return;
+        }
+        setChannelId(targetId);
+      }
+
       // Render
       return (
         <div className="grid grid-cols-12 min-h-screen">
@@ -269,16 +298,24 @@
           <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
             <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
             <div className="space-y-1">
-              {CHANNELS.map(ch=>(
-                <div key={ch.id}
-                     className={`ch-item ${channelId===ch.id?'active hover:bg-slate-800':'hover:bg-slate-800/60'}`}
-                     onClick={()=>setChannelId(ch.id)}>
-                  <span className={`dot ${ch.dot}`}></span>
-                  <span>{ch.name}</span>
-                </div>
-              ))}
+              {CHANNELS.map((ch, idx)=>{
+                const isActive = channelId===ch.id;
+                const locked = idx > unlockedIdx;
+                return (
+                  <div key={ch.id}
+                       className={`ch-item ${isActive?'active hover:bg-slate-800':'hover:bg-slate-800/60'} ${locked?'opacity-40 cursor-not-allowed':''}`}
+                       onClick={()=>trySwitchChannel(ch.id, idx)}
+                       title={locked ? 'Locked until you complete the previous channel.' : ''}>
+                    <span className={`dot ${ch.dot}`}></span>
+                    <span className="truncate">{ch.name}</span>
+                    {completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-emerald-600/20 text-emerald-300">done</span>}
+                    {locked && !completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-slate-700 text-slate-300">locked</span>}
+                  </div>
+                );
+              })}
             </div>
-            <div className="mt-auto text-[10px] text-slate-500">FAQ Speedrun • Vercel Functions</div>
+            <div className="mt-2 h-5 text-xs text-amber-300">{notice}</div>
+            <div className="mt-auto text-[10px] text-slate-500">Apex Trader Funding • Vercel Functions</div>
           </aside>
 
           {/* Main */}
@@ -286,24 +323,28 @@
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2a.75.75 0 0 1 .7.48l1.26 3.29 3.3 1.26a.75.75 0 0 1 0 1.4l-3.3 1.26-1.26 3.3a.75.75 0 0 1-1.4 0l-1.26-3.3-3.3-1.26a.75.75 0 0 1 0-1.4l3.3-1.26 1.26-3.3a.75.75 0 0 1 .7-.48Z"/></svg>
-                <h1 className="text-xl font-semibold">FAQ Speedrun</h1>
+                <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
-                {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}>Start</button>}
+                {!started && <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={startRun}
+                  disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+                  title={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : ''}>
+                  Start
+                </button>}
                 <button className="px-3 py-1.5 rounded border border-slate-300 hover:bg-white" onClick={()=>resetRun()}>Reset</button>
               </div>
             </div>
 
             <div className="border rounded-xl overflow-hidden bg-white">
               <div className="px-4 py-3 border-b text-sm text-slate-500">
-                {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
+                {started ? "Answer 5 questions before the timer runs out." : "Press Start at the top rigth to begin."}
               </div>
               <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
                 {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
-                {typing && <div className="text-xs text-slate-500">CoachBot is typing…</div>}
-                {!started && <div className="text-xs text-slate-600">The coach pulls your channel’s FAQ and asks randomized assessment questions. You’ll be graded on accuracy.</div>}
+                {typing && <div className="text-xs text-slate-500">Coach is typing…</div>}
+                {!started && <div className="text-xs text-slate-600">You will be given 10 minutes to complete all 5 questions and unlock the next channel.</div>}
               </div>
               <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
                 <div className="text-xs text-slate-500">
@@ -352,7 +393,8 @@
                   ))}
                 </div>
                 <div className="px-4 py-3 border-t">
-                  <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={()=>startRun()}>
+                  <button className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500" onClick={()=>startRun()}
+                          disabled={CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}>
                     Run Again
                   </button>
                 </div>
