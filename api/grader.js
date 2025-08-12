@@ -1,7 +1,6 @@
 export const config = { runtime: 'nodejs' };
 // /api/grader.js — Vercel Serverless Function (NO AUTH)
 
-// CORS + method handling
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -23,15 +22,15 @@ export default async function handler(req, res) {
     const { channel = '#platform-setup', question = '', answer = '', faqMd = '' } = body || {};
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
 
-    const system = 
+    const system = `
 You are a strict, fair grader. Grade a trainee's answer using ONLY the provided FAQ context.
 - If the question can't be answered from the context, mark passed=false and add "out_of_scope" to flags.
 - Be concise and avoid inventing facts.
 Return ONLY a compact JSON object with these fields:
 { "passed": boolean, "why": string, "matched": string[], "missing": string[], "flags": string[] }
-.trim();
+`.trim();
 
-    const userMsg = 
+    const userMsg = `
 FAQ CONTEXT (Markdown):
 ${faqMd}
 
@@ -42,12 +41,12 @@ TRAINEE ANSWER:
 ${answer}
 
 Return JSON only.
-.trim();
+`.trim();
 
     const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': Bearer ${process.env.OPENAI_API_KEY},
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
