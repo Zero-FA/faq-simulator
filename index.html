@@ -138,26 +138,40 @@
         await askNext();
       }
 
-      async function askNext(){
-        if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
-        setTyping(true);
-        try{
-          const reply = USE_MOCK 
-            ? { content: "Sample question?" }
-            : await (await fetch(COACH_URL, {
-                method: 'POST',
-                headers: { 'Content-Type':'application/json' },
-                body: JSON.stringify({ channel: channelId, history, faqMd })
-              })).json();
-          const text = reply?.content?.trim() || "Ask: (No coach output)";
-          setMessages(m=>[...m, {from:'bot', text, time: now()}]);
-          setHistory(h=>[...h, {role:'assistant', content:text}]);
-        } catch (e) {
-          setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
-        } finally {
-          setTyping(false);
-        }
-      }
+async function askNext(){
+  if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
+  setTyping(true);
+  try {
+    if (USE_MOCK) {
+      const text = "Sample question?";
+      setMessages(m=>[...m, {from:'bot', text, time: now()}]);
+      setHistory(h=>[...h, {role:'assistant', content:text}]);
+      return;
+    }
+
+    const res = await fetch(COACH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      // If you prefer the channel name (e.g., "#platform-setup"), do this instead:
+      // body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
+      body: JSON.stringify({ channel: channelId, history, faqMd })
+    });
+
+    const txt = await res.text();
+    let data;
+    try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
+    if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
+
+    const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
+    setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
+    setHistory(h=>[...h, {role:'assistant', content:qText}]);
+
+  } catch (e) {
+    setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
+  } finally {
+    setTyping(false);
+  }
+}
 
       function endRun(passedResults){
         if (finished) return;
