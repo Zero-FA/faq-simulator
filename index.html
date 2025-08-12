@@ -156,37 +156,36 @@
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      // Restore access
-      useEffect(()=>{
-        const ok = localStorage.getItem('faqsr:access') === 'ok';
-        if (ok) setAccessOk(true);
-      }, []);
+// No restore — always require code on fresh load
+useEffect(() => {
+  setAccessOk(false);
+}, []);
 
-      async function handleAccessSubmit(e){
-        e?.preventDefault?.();
-        if (!codeDraft.trim()) return;
-        setChecking(true);
-        setAccessErr('');
-        try{
-          const r = await fetch(CHECK_ACCESS_URL, {
-            method:'POST',
-            headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({ code: codeDraft.trim() })
-          });
-          const ok = r.ok;
-          const data = await r.json().catch(()=>({}));
-          if (!ok || !data?.ok) {
-            throw new Error(data?.error || 'Invalid code');
-          }
-          localStorage.setItem('faqsr:access', 'ok');
-          setAccessOk(true);
-          setCodeDraft('');
-        } catch(err){
-          setAccessErr(err.message || 'Invalid code');
-        } finally {
-          setChecking(false);
-        }
-      }
+async function handleAccessSubmit(e) {
+  e?.preventDefault?.();
+  if (!codeDraft.trim()) return;
+  setChecking(true);
+  setAccessErr('');
+  try {
+    const r = await fetch(CHECK_ACCESS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: codeDraft.trim() })
+    });
+    const ok = r.ok;
+    const data = await r.json().catch(() => ({}));
+    if (!ok || !data?.ok) {
+      throw new Error(data?.error || 'Invalid code');
+    }
+    // Removed localStorage.setItem(...) — don't persist
+    setAccessOk(true);
+    setCodeDraft('');
+  } catch (err) {
+    setAccessErr(err.message || 'Invalid code');
+  } finally {
+    setChecking(false);
+  }
+}
 
       // Load FAQ when channel changes
       useEffect(()=>{
