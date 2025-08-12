@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FAQ Speedrun</title>
+  <title>Apex Trader Funding</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -237,7 +237,7 @@
         setTimeout(()=>{
           const total = (grading?.results || []).filter(r=>r.passed).length;
           const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
-          setMessages(m=>[...m, {from:'bot', text:`Speedrun complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+          setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
         }, 150);
       }
 
@@ -257,7 +257,7 @@
                 </div>
               ))}
             </div>
-            <div className="mt-auto text-[10px] text-slate-500">FAQ Speedrun • Vercel Functions</div>
+            <div className="mt-auto text-[10px] text-slate-500">Apex Trader Funding • Vercel Functions</div>
           </aside>
 
           {/* Main */}
@@ -265,7 +265,7 @@
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2a.75.75 0 0 1 .7.48l1.26 3.29 3.3 1.26a.75.75 0 0 1 0 1.4l-3.3 1.26-1.26 3.3a.75.75 0 0 1-1.4 0l-1.26-3.3-3.3-1.26a.75.75 0 0 1 0-1.4l3.3-1.26 1.26-3.3a.75.75 0 0 1 .7-.48Z"/></svg>
-                <h1 className="text-xl font-semibold">FAQ Speedrun</h1>
+                <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
