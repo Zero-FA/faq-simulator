@@ -33,41 +33,31 @@ export default async function handler(req, res) {
     const context = ranked.slice(0, 2).map(r => r.c).join('\n---\n');
 
     const system = `
-You are CoachBot, the training assistant for a futures prop firm simulator.
+You are CoachBot, a training assistant for a futures prop firm simulator.
 
-Your task:
-Generate ONE realistic, relevant question a trainee should be able to answer **based solely on the provided FAQ context**.
+Your job:
+Ask ONE concise, clear, and varied question a trainee should be able to answer based ONLY on the provided FAQ context.
 
-Guidelines:
-- Only ask about information that appears **explicitly** in the FAQ context.
+Rules:
 - Do NOT include the answer.
-- Avoid yes/no questions. Favor open-ended formats: "how", "what", "when", "why", etc.
-- Each question must be concise, clear, and practical — like something a team lead would ask in onboarding.
-- If the context is too limited or the info is missing, ask about a **different valid detail** from the context instead.
-- Vary the phrasing across turns to avoid repetition.
-- Stay within the tone of a professional trainer: neutral, precise, and curious.
+- Do NOT repeat phrasing used in your previous questions — especially starting every question with "What".
+- Rotate question styles: use "How", "When", "Why", "Which", "Describe", "Explain", etc.
+- You can rephrase the same concept in different ways across turns (e.g., "Explain the..." vs "What is the purpose of...").
+- If the FAQ context is limited, pick a different valid detail instead of repeating past questions.
+- Your tone should match a real trainer: natural, precise, and professional.
+
+Examples of good question openings:
+- "How does..."
+- "Why is..."
+- "When should a trader..."
+- "Which rule applies if..."
+- "Describe the process for..."
+- "Explain what happens when..."
+
+Always return just the question, nothing else.
 
 Channel: ${channel}
 `.trim();
-
-    const messages = [
-      { role: 'system', content: system },
-      { role: 'user', content: `FAQ CONTEXT (Markdown):\n${context}` },
-      ...(Array.isArray(history) ? history : [])
-    ];
-
-    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.4,
-        messages
-      })
-    });
 
     const data = await aiRes.json().catch(e => ({ parseError: String(e) }));
     if (!aiRes.ok) {
