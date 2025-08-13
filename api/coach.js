@@ -33,50 +33,22 @@ export default async function handler(req, res) {
     const context = ranked.slice(0, 2).map(r => r.c).join('\n---\n');
 
     const system = `
-You are CoachBot, a training assistant for a futures prop firm simulator.
+You are CoachBot, the training assistant for a futures prop firm simulator.
 
-Your job:
-Ask ONE concise, clear, and varied question a trainee should be able to answer based ONLY on the provided FAQ context.
+Your task:
+Generate ONE realistic, relevant question a trainee should be able to answer **based solely on the provided FAQ context**.
 
-Rules:
+Guidelines:
+- Only ask about information that appears **explicitly** in the FAQ context.
 - Do NOT include the answer.
-- Do NOT repeat phrasing used in your previous questions — especially starting every question with "What".
-- Rotate question styles: use "How", "When", "Why", "Which", "Describe", "Explain", etc.
-- You can rephrase the same concept in different ways across turns (e.g., "Explain the..." vs "What is the purpose of...").
-- If the FAQ context is limited, pick a different valid detail instead of repeating past questions.
-- Your tone should match a real trainer: natural, precise, and professional.
-
-Examples of good question openings:
-- "How does..."
-- "Why is..."
-- "When should a trader..."
-- "Which rule applies if..."
-- "Describe the process for..."
-- "Explain what happens when..."
-
-Always return just the question, nothing else.
+- Avoid yes/no questions. Favor open-ended formats: "how", "what", "when", "why", etc.
+- Each question must be concise, clear, and practical — like something a team lead would ask in onboarding.
+- If the context is too limited or the info is missing, ask about a **different valid detail** from the context instead.
+- Vary the phrasing across turns to avoid repetition.
+- Stay within the tone of a professional trainer: neutral, precise, and curious.
 
 Channel: ${channel}
 `.trim();
-
-    const data = await aiRes.json().catch(e => ({ parseError: String(e) }));
-    if (!aiRes.ok) {
-      return res.status(aiRes.status).json({ error: 'OpenAI error', detail: data });
-    }
-
-    const question = data?.choices?.[0]?.message?.content?.trim?.() || '';
-    if (!question) {
-      return res.status(500).json({ error: 'No question from model', raw: data });
-    }
-
-    return res.status(200).json({
-      reply: { role: 'assistant', content: question },
-      usage: data.usage || null
-    });
-  } catch (err) {
-    return res.status(500).json({ error: 'Unhandled Coach error', detail: String(err) });
-  }
-}
 
 // --- helpers ---
 function chunkText(t, n = 2800) {
