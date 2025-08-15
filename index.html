@@ -200,49 +200,82 @@
         }
       }
 
-      // submit trainee answer -> grade -> maybe next or end
-      async function submit(){
-        if (!draft.trim() || !started || finished) return;
-        const userText = draft.trim();
-        setDraft('');
-        setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
-        setHistory(h=>[...h, {role:'user', content:userText}]);
+// submit trainee answer -> grade -> maybe next or end
+async function submit(){
+  if (!draft.trim() || !started || finished) return;
 
-        const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
-        try {
-          const res = await fetch(GRADE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, question:lastQuestion, answer:userText, faqMd })
-          });
-          const graded = await res.json();
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
+  const userText = draft.trim();
+  setDraft('');
+  setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
+  setHistory(h=>[...h, {role:'user', content:userText}]);
 
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = { qText:lastQuestion, ans:userText, ...graded };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) {
-              endRun(nextResults);
-            } else {
-              askNext();
-            }
-            return { results: nextResults };
-          });
-        } catch (e) {
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = { qText:lastQuestion, ans:userText, passed:false, why:`Grader error: ${e.message}`, matched:[], missing:[], flags:[] };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
-            else askNext();
-            return { results: nextResults };
-          });
-        }
+  const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+
+  try {
+    const res = await fetch(GRADE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+        question: lastQuestion,
+        answer: userText,
+        faqMd
+      })
+    });
+
+    // ---- SAFE PARSE (handle non-JSON upstream errors) ----
+    const txt = await res.text();
+    let graded;
+    try {
+      graded = JSON.parse(txt);
+    } catch {
+      throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
+    }
+    if (!res.ok) {
+      const msg = graded?.error || `HTTP ${res.status}`;
+      const detail = typeof graded?.detail === 'string'
+        ? graded.detail
+        : JSON.stringify(graded?.detail || '');
+      throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
+    }
+    // ------------------------------------------------------
+
+    const nextCount = qCount + 1;
+    setQCount(nextCount);
+
+    setGrading(g=>{
+      const prev = g?.results || [];
+      const cur = { qText:lastQuestion, ans:userText, ...graded };
+      const nextResults = [...prev, cur];
+      if (nextCount >= QUESTIONS_PER_RUN) {
+        endRun(nextResults);
+      } else {
+        askNext();
       }
+      return { results: nextResults };
+    });
+
+  } catch (e) {
+    const nextCount = qCount + 1;
+    setQCount(nextCount);
+    setGrading(g=>{
+      const prev = g?.results || [];
+      const cur = {
+        qText: lastQuestion,
+        ans: userText,
+        passed: false,
+        why: `Grader error: ${e.message}`,
+        matched: [],
+        missing: [],
+        flags: []
+      };
+      const nextResults = [...prev, cur];
+      if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
+      else askNext();
+      return { results: nextResults };
+    });
+  }
+}
 
       // channel click with locking
       function trySwitchChannel(targetId, targetIdx){
