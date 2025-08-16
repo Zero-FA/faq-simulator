@@ -1,6 +1,10 @@
-export const config = { runtime: 'nodejs' };
+// /api/coach.js
+const fetch = global.fetch;
 
-export default async function handler(req, res) {
+// Store asked questions in memory for the current session
+let askedQuestions = new Set();
+
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token');
@@ -12,96 +16,78 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
     }
 
-    // Parse request
+    // Parse request body
     let body = req.body;
     if (typeof body === 'string') {
       try { body = JSON.parse(body || '{}'); }
       catch (e) { return res.status(400).json({ error: 'Bad JSON', detail: String(e) }); }
     }
-
-    const {
-      channel = '#platform-setup',
-      history = [],
-      faqMd = '',
-      usedIndexes = [],
-      usedQuestions = [] // track previous questions in the run
-    } = body || {};
-
+    const { faqMd = '', numQuestions = 5 } = body || {};
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
 
-    const chunks = chunkText(faqMd, 2800);
-    let usedIdx = Array.isArray(usedIndexes) ? [...usedIndexes] : [];
-    let usedQ = Array.isArray(usedQuestions) ? [...usedQuestions] : [];
-
-    // Pick a chunk — avoid repeats if possible
-    if (usedIdx.length >= chunks.length) usedIdx = []; // reset chunk use if all used
-
-    let available = chunks.map((_, i) => i).filter(i => !usedIdx.includes(i));
-    if (available.length === 0) available = chunks.map((_, i) => i); // if fewer chunks than needed
-
-    const selectedIndex = available[Math.floor(Math.random() * available.length)];
-    usedIdx.push(selectedIndex);
-
-    const context = chunks[selectedIndex];
-
-    const system = `
-You are CoachBot for a futures prop firm training sim.
-ONLY use the FAQ context provided. If it's not in the context, ask about a different detail from the context.
-Ask exactly ONE concise, realistic question a trainee should be able to answer from the FAQ.
-Avoid yes/no questions; prefer "how / what / when" style. Do not include the answer.
-Channel: ${channel}
+    const systemPrompt = `
+You are a coach giving quiz questions to a trainee.
+Use ONLY the provided FAQ context.
+Rules:
+- Do not repeat any questions already given in this session (provided in "ALREADY ASKED" list).
+- Only ask clear, distinct, and concise questions.
+- Do not ask questions that are essentially the same with slightly different wording.
+- No answers should be included.
+- The questions should be random and cover a variety of topics from the FAQ.
+- Output only a JSON array of questions, nothing else.
 `.trim();
 
-    const messages = [
-      { role: 'system', content: system },
-      { role: 'user', content: `FAQ CONTEXT (Markdown):\n${context}` },
-      ...(Array.isArray(history) ? history : [])
-    ];
+    const alreadyAsked = Array.from(askedQuestions);
 
-    // Generate until we get a unique question (avoid duplicates if chunk reused)
-    let question = '';
-    let tries = 0;
-    while ((!question || usedQ.includes(question)) && tries < 3) {
-      tries++;
-      const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4.1', // swap to gpt-5 when available
-          temperature: 0.4,
-          messages
-        })
-      });
+    const userPrompt = `
+FAQ CONTEXT (Markdown):
+${faqMd}
 
-      const data = await aiRes.json().catch(e => ({ parseError: String(e) }));
-      if (!aiRes.ok) {
-        return res.status(aiRes.status).json({ error: 'OpenAI error', detail: data });
-      }
+ALREADY ASKED:
+${alreadyAsked.join("\n")}
 
-      question = data?.choices?.[0]?.message?.content?.trim?.() || '';
-    }
+Generate ${numQuestions} new, unique questions based on the FAQ.
+Do not repeat or rephrase any from the ALREADY ASKED list.
+Output JSON only.
+`.trim();
 
-    if (!question) {
-      return res.status(500).json({ error: 'No question from model' });
-    }
-
-    usedQ.push(question);
-
-    return res.status(200).json({
-      reply: { role: 'assistant', content: question },
-      usedIndexes: usedIdx,
-      usedQuestions: usedQ
+    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+      })
     });
+
+    const dataTxt = await aiRes.text();
+    let data;
+    try { data = JSON.parse(dataTxt); } catch {
+      return res.status(502).json({ error: 'Upstream non-JSON', detail: dataTxt.slice(0, 500) });
+    }
+    if (!aiRes.ok) {
+      return res.status(aiRes.status).json({ error: 'OpenAI error', detail: data });
+    }
+
+    const raw = data?.choices?.[0]?.message?.content || '[]';
+    let questions;
+    try { questions = JSON.parse(raw); } catch { questions = []; }
+
+    // Track questions to avoid repeats in future calls
+    questions.forEach(q => askedQuestions.add(q));
+
+    return res.status(200).json({ questions });
   } catch (err) {
     return res.status(500).json({ error: 'Unhandled Coach error', detail: String(err) });
   }
 }
 
-function chunkText(t, n = 2800) {
-  const out = [];
-  for (let i = 0; i < t.length; i += n) out.push(t.slice(i, i + n));
-  return out;
-}
+module.exports = handler;
+module.exports.config = { runtime: 'nodejs' };
