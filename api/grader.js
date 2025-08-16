@@ -34,7 +34,9 @@ Passing rule:
 - If mostly right but with minor extra detail not named in the FAQ, pass and flag "minor_overreach".
 
 Failing rule:
-- passed=false if out_of_scope, contradiction, missing critical elements, or too vague ("Needs Accuracy").
+- passed=false if out_of_scope, contradiction, missing critical elements, or too vague.
+- ALL incorrect, incomplete, or partially correct answers must be labeled with the single flag "needs_work".
+- Do not use any other flags such as "Needs Accuracy", "Needs Precision", etc.
 
 Compare by meaning, accept equivalents; extras that change meaning → fail ("contradiction"/"unsupported_requirement").
 
@@ -86,7 +88,7 @@ Return JSON only.
       why: 'Grader returned non-JSON response.',
       matched: [],
       missing: [],
-      flags: ['parser_error']
+      flags: ['needs_work', 'parser_error']
     };
 
     return res.status(200).json(graded);
