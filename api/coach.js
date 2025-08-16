@@ -1,5 +1,4 @@
 export const config = { runtime: 'nodejs' };
-// /api/coach.js — Vercel Serverless Function (NO AUTH)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,7 +12,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
     }
 
-    // Parse body
+    // Parse request
     let body = req.body;
     if (typeof body === 'string') {
       try { body = JSON.parse(body || '{}'); }
@@ -24,20 +23,26 @@ export default async function handler(req, res) {
       channel = '#platform-setup',
       history = [],
       faqMd = '',
-      usedIndexes = [] // NEW
+      usedIndexes = [],
+      usedQuestions = [] // track previous questions in the run
     } = body || {};
 
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
 
-    // --- Random chunk selection ---
     const chunks = chunkText(faqMd, 2800);
-    let used = Array.isArray(usedIndexes) ? [...usedIndexes] : [];
-    if (used.length >= chunks.length) used = []; // reset when all used
-    const available = chunks.map((_, i) => i).filter(i => !used.includes(i));
+    let usedIdx = Array.isArray(usedIndexes) ? [...usedIndexes] : [];
+    let usedQ = Array.isArray(usedQuestions) ? [...usedQuestions] : [];
+
+    // Pick a chunk — avoid repeats if possible
+    if (usedIdx.length >= chunks.length) usedIdx = []; // reset chunk use if all used
+
+    let available = chunks.map((_, i) => i).filter(i => !usedIdx.includes(i));
+    if (available.length === 0) available = chunks.map((_, i) => i); // if fewer chunks than needed
+
     const selectedIndex = available[Math.floor(Math.random() * available.length)];
-    used.push(selectedIndex);
+    usedIdx.push(selectedIndex);
+
     const context = chunks[selectedIndex];
-    // --------------------------------
 
     const system = `
 You are CoachBot for a futures prop firm training sim.
@@ -53,41 +58,48 @@ Channel: ${channel}
       ...(Array.isArray(history) ? history : [])
     ];
 
-    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1', // ✅ switched to GPT-5
-        temperature: 0.4,
-        messages
-      })
-    });
+    // Generate until we get a unique question (avoid duplicates if chunk reused)
+    let question = '';
+    let tries = 0;
+    while ((!question || usedQ.includes(question)) && tries < 3) {
+      tries++;
+      const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1', // swap to gpt-5 when available
+          temperature: 0.4,
+          messages
+        })
+      });
 
-    const data = await aiRes.json().catch(e => ({ parseError: String(e) }));
-    if (!aiRes.ok) {
-      return res.status(aiRes.status).json({ error: 'OpenAI error', detail: data });
+      const data = await aiRes.json().catch(e => ({ parseError: String(e) }));
+      if (!aiRes.ok) {
+        return res.status(aiRes.status).json({ error: 'OpenAI error', detail: data });
+      }
+
+      question = data?.choices?.[0]?.message?.content?.trim?.() || '';
     }
 
-    const question = data?.choices?.[0]?.message?.content?.trim?.() || '';
     if (!question) {
-      return res.status(500).json({ error: 'No question from model', raw: data });
+      return res.status(500).json({ error: 'No question from model' });
     }
+
+    usedQ.push(question);
 
     return res.status(200).json({
       reply: { role: 'assistant', content: question },
-      usage: data.usage || null,
-      usedIndexes: used, // ✅ send back updated list
-      selectedIndex
+      usedIndexes: usedIdx,
+      usedQuestions: usedQ
     });
   } catch (err) {
     return res.status(500).json({ error: 'Unhandled Coach error', detail: String(err) });
   }
 }
 
-// --- helpers ---
 function chunkText(t, n = 2800) {
   const out = [];
   for (let i = 0; i < t.length; i += n) out.push(t.slice(i, i + n));
