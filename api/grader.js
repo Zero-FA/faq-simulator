@@ -34,7 +34,7 @@ Passing rule:
 - If mostly right but with minor extra detail not named in the FAQ, pass and flag "minor_overreach".
 
 Failing rule:
-- passed=false if out_of_scope, contradiction, missing critical elements, or too vague ("needs_precision").
+- passed=false if out_of_scope, contradiction, missing critical elements, or too vague ("Needs Accuracy").
 
 Compare by meaning, accept equivalents; extras that change meaning → fail ("contradiction"/"unsupported_requirement").
 
