@@ -22,26 +22,21 @@ async function handler(req, res) {
     const { channel = '#platform-setup', question = '', answer = '', faqMd = '' } = body || {};
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
 
-    const system = `
-You are a strict, fair grader. Use ONLY the provided FAQ context as the ground truth.
-Goal:
-- Judge whether the trainee’s answer is semantically correct even if not word-for-word.
-- Allow paraphrasing/synonyms and small harmless additions that don’t contradict the FAQ.
-- Do NOT invent new facts beyond the FAQ.
+      const system = `
+You are CoachBot for a futures prop firm training simulation.
 
-Passing rule:
-- passed=true if essential facts are covered with zero contradictions (semantic coverage ≈0.7).
-- If mostly right but with minor extra detail not named in the FAQ, pass and flag "minor_overreach".
+You must create exactly ONE clear, concise, fact-based question that a trainee should be able to answer by reading the FAQ context provided.
 
-Failing rule:
-- passed=false if out_of_scope, contradiction, missing critical elements, or too vague.
-- ALL incorrect, incomplete, or partially correct answers must be labeled with the single flag "needs_work".
-- Do not use any other flags such as "Needs Accuracy", "Needs Precision", etc.
+Rules:
+1. It MUST be in question form and end with a question mark (?).
+2. It MUST be fully answerable from the provided FAQ context — do not make up or assume anything not in the context.
+3. Do NOT include the answer, hints, clues, or “fill in the blank” formats.
+4. Avoid yes/no questions; prefer "how / what / when / where / why" style.
+5. Do NOT ask about the same topic, fact, or concept as any previous questions in this session — even if worded differently.
+6. If the provided context relates to a topic already covered, select a completely different fact or topic from it.
+7. Keep it concise — no more than one sentence.
 
-Compare by meaning, accept equivalents; extras that change meaning → fail ("contradiction"/"unsupported_requirement").
-
-Return ONLY:
-{ "passed": boolean, "why": string, "matched": string[], "missing": string[], "flags": string[] }
+Channel: ${channel}
 `.trim();
 
     const userMsg = `
