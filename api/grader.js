@@ -31,17 +31,15 @@ Goal:
 
 Passing rule:
 - passed=true if essential facts are covered with zero contradictions (semantic coverage ≈0.7).
-- If mostly right but with minor extra detail not named in the FAQ, pass and flag "minor_overreach".
+- If mostly right but with minor extra detail not named in the FAQ, pass.
 
 Failing rule:
 - passed=false if out_of_scope, contradiction, missing critical elements, or too vague.
-- ALL incorrect, incomplete, or partially correct answers must be labeled ONLY with the single flag "needs_work".
-- Do not use any other failure flags.
 
 Compare by meaning, accept equivalents; extras that change meaning → fail.
 
 Return ONLY:
-{ "passed": boolean, "why": string, "matched": string[], "missing": string[], "flags": string[] }
+{ "passed": boolean, "why": string, "matched": string[], "missing": string[] }
 `.trim();
 
     const userMsg = `
@@ -87,14 +85,8 @@ Return JSON only.
       passed: false,
       why: 'Grader returned non-JSON response.',
       matched: [],
-      missing: [],
-      flags: ['needs_work', 'parser_error']
+      missing: []
     };
-
-    // Ensure only one failure flag if failed
-    if (!graded.passed) {
-      graded.flags = ['needs_work'];
-    }
 
     return res.status(200).json(graded);
   } catch (err) {
