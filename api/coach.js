@@ -19,18 +19,25 @@ export default async function handler(req, res) {
       try { body = JSON.parse(body || '{}'); }
       catch (e) { return res.status(400).json({ error: 'Bad JSON', detail: String(e) }); }
     }
-    const { channel = '#platform-setup', history = [], faqMd = '' } = body || {};
+
+    const {
+      channel = '#platform-setup',
+      history = [],
+      faqMd = '',
+      usedIndexes = [] // NEW
+    } = body || {};
+
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
 
-    // Build lightweight retrieval context from last user message
-    const lastUser = [...(Array.isArray(history) ? history : [])]
-      .reverse().find(m => m?.role === 'user')?.content || '';
+    // --- Random chunk selection ---
     const chunks = chunkText(faqMd, 2800);
-    const terms = (lastUser.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
-    const ranked = chunks.map((c, i) => ({
-      i, c, score: terms.filter(w => c.toLowerCase().includes(w)).length
-    })).sort((a, b) => b.score - a.score);
-    const context = ranked.slice(0, 2).map(r => r.c).join('\n---\n');
+    let used = Array.isArray(usedIndexes) ? [...usedIndexes] : [];
+    if (used.length >= chunks.length) used = []; // reset when all used
+    const available = chunks.map((_, i) => i).filter(i => !used.includes(i));
+    const selectedIndex = available[Math.floor(Math.random() * available.length)];
+    used.push(selectedIndex);
+    const context = chunks[selectedIndex];
+    // --------------------------------
 
     const system = `
 You are CoachBot for a futures prop firm training sim.
@@ -53,7 +60,7 @@ Channel: ${channel}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5', // ✅ switched to GPT-5
         temperature: 0.4,
         messages
       })
@@ -71,7 +78,9 @@ Channel: ${channel}
 
     return res.status(200).json({
       reply: { role: 'assistant', content: question },
-      usage: data.usage || null
+      usage: data.usage || null,
+      usedIndexes: used, // ✅ send back updated list
+      selectedIndex
     });
   } catch (err) {
     return res.status(500).json({ error: 'Unhandled Coach error', detail: String(err) });
