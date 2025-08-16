@@ -35,10 +35,10 @@ Passing rule:
 
 Failing rule:
 - passed=false if out_of_scope, contradiction, missing critical elements, or too vague.
-- ALL incorrect, incomplete, or partially correct answers must be labeled with the single flag "needs_work".
-- Do not use any other flags such as "Needs Accuracy", "Needs Precision", etc.
+- ALL incorrect, incomplete, or partially correct answers must be labeled ONLY with the single flag "needs_work".
+- Do not use any other failure flags.
 
-Compare by meaning, accept equivalents; extras that change meaning → fail ("contradiction"/"unsupported_requirement").
+Compare by meaning, accept equivalents; extras that change meaning → fail.
 
 Return ONLY:
 { "passed": boolean, "why": string, "matched": string[], "missing": string[], "flags": string[] }
@@ -90,6 +90,11 @@ Return JSON only.
       missing: [],
       flags: ['needs_work', 'parser_error']
     };
+
+    // Ensure only one failure flag if failed
+    if (!graded.passed) {
+      graded.flags = ['needs_work'];
+    }
 
     return res.status(200).json(graded);
   } catch (err) {
