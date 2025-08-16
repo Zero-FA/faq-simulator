@@ -62,7 +62,7 @@ Return JSON only.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1',
         temperature: 0.2,
         messages: [
           { role: 'system', content: system },
