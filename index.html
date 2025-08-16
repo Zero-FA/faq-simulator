@@ -74,6 +74,73 @@
       );
     }
 
+    // ================= SUMMARY MODAL (NEW) =================
+    function SummaryModal({ open, scores, onClose }) {
+      if (!open) return null;
+
+      const entries = Object.entries(scores || {});
+      const totalCorrect = entries.reduce((s, [,v]) => s + (v?.total || 0), 0);
+      const totalQuestions = entries.reduce((s, [,v]) => s + (v ? (v.results?.length || 0) : 0), 0);
+      const overallPct = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+      return (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 animate-fadeIn" onClick={onClose} />
+
+          {/* Card */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border animate-popIn">
+              <div className="p-4 border-b flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-slate-500">Final Results</div>
+                  <div className="text-xl font-semibold">
+                    Overall: {totalCorrect}/{totalQuestions} ({overallPct}%)
+                  </div>
+                </div>
+                <button
+                  className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500"
+                  onClick={onClose}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="p-4 space-y-2">
+                {CHANNELS.map(ch => {
+                  const s = scores?.[ch.id];
+                  return (
+                    <div key={ch.id} className="flex items-center justify-between rounded-xl border p-3 bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <span className={`dot ${ch.dot}`}></span>
+                        <div className="font-medium text-slate-700">{ch.name}</div>
+                      </div>
+                      {s ? (
+                        <div className="text-sm">
+                          <span className="font-semibold">{s.total}/{s.results.length}</span>
+                          <span className="text-slate-500"> ({s.pct}%)</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-400">Not completed</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Tiny CSS helpers for animations */}
+          <style>{`
+            @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+            @keyframes popIn { 0% { opacity:0; transform: translateY(8px) scale(.98) } 100% { opacity:1; transform: translateY(0) scale(1) } }
+            .animate-fadeIn { animation: fadeIn .2s ease-out both; }
+            .animate-popIn { animation: popIn .25s cubic-bezier(.2,.8,.2,1) both; }
+          `}</style>
+        </div>
+      );
+    }
+
     // ================= MAIN APP =================
     function App() {
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
@@ -89,13 +156,16 @@
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
       // NEW: store results per channel (persists until refresh)
-      const [scores, setScores] = useState({}); 
+      const [scores, setScores] = useState({});
       // shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
 
       // sequential gating state
       const [unlockedIdx, setUnlockedIdx] = useState(0);
       const [completedIds, setCompletedIds] = useState(new Set());
       const [notice, setNotice] = useState('');
+
+      // NEW: overall summary modal
+      const [showSummary, setShowSummary] = useState(false);
 
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
@@ -186,96 +256,109 @@
         const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
 
         // Save per-channel score (persists until refresh)
-        setScores(prev => ({
-          ...prev,
-          [channelId]: { results, total, pct, completedAt: Date.now() }
-        }));
+        setScores(prev => {
+          const next = {
+            ...prev,
+            [channelId]: { results, total, pct, completedAt: Date.now() }
+          };
+          return next;
+        });
 
         setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
 
-        if (results.length >= QUESTIONS_PER_RUN) {
-          setCompletedIds(prev => new Set(prev).add(channelId));
+        // Mark channel completed & unlock next
+        setCompletedIds(prevSet => {
+          const nextSet = new Set(prevSet).add(channelId);
           const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
           setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
+
+          // If ALL channels finished, show overall summary modal
+          Promise.resolve().then(()=>{
+            if (nextSet.size === CHANNELS.length) {
+              setShowSummary(true);
+            }
+          });
+
+          return nextSet;
+        });
+      }
+
+      // submit trainee answer -> grade -> maybe next or end
+      async function submit(){
+        if (!draft.trim() || !started || finished) return;
+
+        const userText = draft.trim();
+        setDraft('');
+        setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
+        setHistory(h=>[...h, {role:'user', content:userText}]);
+
+        const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+
+        try {
+          const res = await fetch(GRADE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+              question: lastQuestion,
+              answer: userText,
+              faqMd
+            })
+          });
+
+          // ---- SAFE PARSE (handle non-JSON upstream errors) ----
+          const txt = await res.text();
+          let graded;
+          try {
+            graded = JSON.parse(txt);
+          } catch {
+            throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
+          }
+          if (!res.ok) {
+            const msg = graded?.error || `HTTP ${res.status}`;
+            const detail = typeof graded?.detail === 'string'
+              ? graded.detail
+              : JSON.stringify(graded?.detail || '');
+            throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
+          }
+          // ------------------------------------------------------
+
+          const nextCount = qCount + 1;
+          setQCount(nextCount);
+
+          setGrading(g=>{
+            const prev = g?.results || [];
+            const cur = { qText:lastQuestion, ans:userText, ...graded };
+            const nextResults = [...prev, cur];
+            if (nextCount >= QUESTIONS_PER_RUN) {
+              endRun(nextResults);
+            } else {
+              askNext();
+            }
+            return { results: nextResults };
+          });
+
+        } catch (e) {
+          const nextCount = qCount + 1;
+          setQCount(nextCount);
+          setGrading(g=>{
+            const prev = g?.results || [];
+            const cur = {
+              qText: lastQuestion,
+              ans: userText,
+              passed: false,
+              why: `Grader error: ${e.message}`,
+              matched: [],
+              missing: [],
+              flags: []
+            };
+            const nextResults = [...prev, cur];
+            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
+            else askNext();
+            return { results: nextResults };
+          });
         }
       }
-
-// submit trainee answer -> grade -> maybe next or end
-async function submit(){
-  if (!draft.trim() || !started || finished) return;
-
-  const userText = draft.trim();
-  setDraft('');
-  setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
-  setHistory(h=>[...h, {role:'user', content:userText}]);
-
-  const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
-
-  try {
-    const res = await fetch(GRADE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
-        question: lastQuestion,
-        answer: userText,
-        faqMd
-      })
-    });
-
-    // ---- SAFE PARSE (handle non-JSON upstream errors) ----
-    const txt = await res.text();
-    let graded;
-    try {
-      graded = JSON.parse(txt);
-    } catch {
-      throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
-    }
-    if (!res.ok) {
-      const msg = graded?.error || `HTTP ${res.status}`;
-      const detail = typeof graded?.detail === 'string'
-        ? graded.detail
-        : JSON.stringify(graded?.detail || '');
-      throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
-    }
-    // ------------------------------------------------------
-
-    const nextCount = qCount + 1;
-    setQCount(nextCount);
-
-    setGrading(g=>{
-      const prev = g?.results || [];
-      const cur = { qText:lastQuestion, ans:userText, ...graded };
-      const nextResults = [...prev, cur];
-      if (nextCount >= QUESTIONS_PER_RUN) {
-        endRun(nextResults);
-      } else {
-        askNext();
-      }
-      return { results: nextResults };
-    });
-
-  } catch (e) {
-    const nextCount = qCount + 1;
-    setQCount(nextCount);
-    setGrading(g=>{
-      const prev = g?.results || [];
-      const cur = {
-        qText: lastQuestion,
-        ans: userText,
-        passed: false,
-        why: `Grader error: ${e.message}`,
-        matched: [],
-        missing: [],
-        flags: []
-      };
-      const nextResults = [...prev, cur];
-      if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
-      else askNext();
-      return { results: nextResults };
-    });
-  }
-}
 
       // channel click with locking
       function trySwitchChannel(targetId, targetIdx){
@@ -399,6 +482,9 @@ async function submit(){
                 </div>
               </div>
             )}
+
+            {/* OVERALL SUMMARY MODAL (NEW) */}
+            <SummaryModal open={showSummary} scores={scores} onClose={() => setShowSummary(false)} />
           </main>
         </div>
       );
