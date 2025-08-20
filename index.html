@@ -283,82 +283,108 @@
         });
       }
 
-      // submit trainee answer -> grade -> maybe next or end
-      async function submit(){
-        if (!draft.trim() || !started || finished) return;
+   // submit trainee message -> let Coach chat/classify -> only grade if it's an actual answer
+async function submit(){
+  if (!draft.trim() || !started || finished) return;
 
-        const userText = draft.trim();
-        setDraft('');
-        setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
-        setHistory(h=>[...h, {role:'user', content:userText}]);
+  const userText = draft.trim();
+  setDraft('');
+  setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
+  setHistory(h=>[...h, {role:'user', content:userText}]);
 
-        const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+  const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
 
-        try {
-          const res = await fetch(GRADE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify({
-              channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
-              question: lastQuestion,
-              answer: userText,
-              faqMd
-            })
-          });
+  // 1) Let Coach decide: clarification vs answer (and reply if clarification)
+  try {
+    const coachRes = await fetch(COACH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        task: 'chat',
+        traineeMsg: userText,
+        lastQuestion,         // Coach uses this to build a one-liner reply
+        // scopeHint: 'Tradovate' // optional: pass if you already know scope
+      })
+    });
 
-          // ---- SAFE PARSE (handle non-JSON upstream errors) ----
-          const txt = await res.text();
-          let graded;
-          try {
-            graded = JSON.parse(txt);
-          } catch {
-            throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
-          }
-          if (!res.ok) {
-            const msg = graded?.error || `HTTP ${res.status}`;
-            const detail = typeof graded?.detail === 'string'
-              ? graded.detail
-              : JSON.stringify(graded?.detail || '');
-            throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
-          }
-          // ------------------------------------------------------
+    const coachTxt = await coachRes.text();
+    let coachData;
+    try { coachData = JSON.parse(coachTxt); } catch { throw new Error(`Coach HTTP ${coachRes.status}: ${coachTxt}`); }
+    if (!coachRes.ok) throw new Error(coachData?.error || `Coach HTTP ${coachRes.status}`);
 
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
+    const result = coachData?.result;
 
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = { qText:lastQuestion, ans:userText, ...graded };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) {
-              endRun(nextResults);
-            } else {
-              askNext();
-            }
-            return { results: nextResults };
-          });
+    // If Coach says it's a clarification, show helper reply and DO NOT grade or advance counters
+    if (result?.type === 'clarification') {
+      const reply = result?.reply || 'Here’s the scope. Please answer the question now.';
+      setMessages(m=>[...m, {from:'bot', text: reply, time: now()}]);
+      return; // keep the same question active
+    }
 
-        } catch (e) {
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = {
-              qText: lastQuestion,
-              ans: userText,
-              passed: false,
-              why: `Grader error: ${e.message}`,
-              matched: [],
-              missing: [],
-              flags: []
-            };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
-            else askNext();
-            return { results: nextResults };
-          });
-        }
+    // Otherwise: it's an ANSWER – continue to grader below
+  } catch (e) {
+    // If Coach chat fails for any reason, fall back to old behavior (grade directly)
+    console.warn('Coach chat failed, falling back to grading:', e.message);
+  }
+
+  // 2) Grade the answer (unchanged behavior)
+  try {
+    const res = await fetch(GRADE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+        question: lastQuestion,
+        answer: userText,
+        faqMd
+      })
+    });
+
+    const txt = await res.text();
+    let graded;
+    try { graded = JSON.parse(txt); } catch { throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`); }
+    if (!res.ok) {
+      const msg = graded?.error || `HTTP ${res.status}`;
+      const detail = typeof graded?.detail === 'string' ? graded.detail : JSON.stringify(graded?.detail || '');
+      throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
+    }
+
+    const nextCount = qCount + 1;
+    setQCount(nextCount);
+
+    setGrading(g=>{
+      const prev = g?.results || [];
+      const cur = { qText:lastQuestion, ans:userText, ...graded };
+      const nextResults = [...prev, cur];
+      if (nextCount >= QUESTIONS_PER_RUN) {
+        endRun(nextResults);
+      } else {
+        askNext();
       }
+      return { results: nextResults };
+    });
+
+  } catch (e) {
+    const nextCount = qCount + 1;
+    setQCount(nextCount);
+    setGrading(g=>{
+      const prev = g?.results || [];
+      const cur = {
+        qText: lastQuestion,
+        ans: userText,
+        passed: false,
+        why: `Grader error: ${e.message}`,
+        matched: [],
+        missing: [],
+        flags: []
+      };
+      const nextResults = [...prev, cur];
+      if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
+      else askNext();
+      return { results: nextResults };
+    });
+  }
+}
 
       // channel click with locking
       function trySwitchChannel(targetId, targetIdx){
