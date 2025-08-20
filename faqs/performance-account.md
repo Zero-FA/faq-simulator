@@ -399,3 +399,182 @@ Observe the 30% Negative PnL Limit (Adjustable to 50%):
 Maintain a 30% drawdown limit based on the account’s profit balance. As the account grows, this limit may be adjusted to 50%, providing more flexibility as the account becomes more established.
 Example: A trader starts with a 30% drawdown limit, which can be raised to 50% once their account balance meets specified growth conditions.
 Practical Example: A trader adhering to a defined, consistent strategy, observing the half-contract limit until the trailing stop is cleared, maintaining a 5:1 risk-reward ratio, and ensuring no drawdown exceeds 30% (or 50% if eligible) would be considered fully compliant under Apex rules.
+
+PA Payout Rules and Payout Method
+Not yet followed by anyone
+Important Information on Apex Payout Methods and Procedures
+At Apex, we prioritize accurate and timely payouts for all our traders and affiliates. To ensure smooth transactions, it’s crucial to follow the correct procedures when updating your payout method. Below, we’ve outlined key information and important reminders regarding payouts, including updates for non-U.S. traders and affiliates.
+
+Payout Information: How to Request and Receive Your Payment
+Apex Trader Funding provides different payout methods based on your location. Whether you're a U.S. or non-U.S. trader, it’s important to follow the correct process to ensure your payout is processed smoothly and accurately.
+
+Payout Method Selection: U.S. vs. Non-U.S. Traders
+For U.S. Traders:
+
+Payout Method: Direct Deposit (ACH)
+Payment Processing: U.S. traders will have their payments processed via ACH, using regional service providers.
+Important ACH Reminder: Ensure you're using the correct ACH routing number for your bank account. ACH routing numbers and Wire Transfer numbers are often different, so verify you're using the correct one.
+For Non-U.S. Traders:
+
+Payout Method: International (via Plane)
+Payment Processing: Non-U.S. traders will have their payments processed through Plane, a secure payment gateway. After your first request is approved, you will receive an invitation email from Plane to link your local bank. This ensures that subsequent payouts will be processed seamlessly.
+Payout Requirements and Criteria
+To request a payout, you must meet the following criteria to ensure smooth and compliant processing. These steps apply to both U.S. and non-U.S. traders.
+
+8 Trading Days: You must have completed at least 8 trading days.
+Profit on 5 Days: At least 5 of those 8 days must show a profit of $50 or more.
+Safety Net for First Three Payouts: The safety net is calculated as your drawdown limit plus $100. This requirement applies to your first three payouts only. For more details, please refer to Safety Net Rules. 
+Safety Net Requirement for First Three Payouts
+Applicability: The safety net requirement applies to the first three approved payouts. It no longer applies from the fourth payout onward.
+Definition: The safety net is the sum of the drawdown amount based on your account size plus $100.
+Minimum Payout Exception: If the safety net threshold is met, you can request the minimum payout of $500, even if it exceeds the safety net amount.
+Payouts Above Minimum:
+To request more than the minimum, your balance must exceed the safety net threshold by the additional amount you wish to withdraw.
+Example: For a $50,000 account with a drawdown of $2,500, the safety net is $2,600. If your balance is $52,600, you can request a minimum payout of $500. To request $1,200, your balance must be at least $53,300.
+Required Minimum Balance to Request a Payout
+Your account must meet the required minimum balance to approve a payout, which includes surpassing the trailing drawdown level. The trailing drawdown in a PA account stops at the starting balance plus $100.
+
+Minimum Required Balances:
+Account Size	Minimum Required Balance
+$25k Account	$26,600
+$50k Account	$52,600
+$100k Account	$103,100
+$150k Account	$155,100
+$250k Account	$256,600
+$300k Account	$307,600
+$100k Static	$102,600
+Note: For a $50k account, you cannot request a payout if your balance is $52,000. It must be at least $52,600.
+
+Minimum and Maximum Payout Amounts
+Minimum Payout: $500 for any account size. You must have at least eight (8) trading days since the last request and meet the minimum required balance.
+Maximum Payouts (First Five Payouts):
+Account Size	Maximum Payout
+$25k Account	$1,500
+$50k Account	$2,000
+$100k Account	$2,500
+$150k Account	$2,750
+$250k Account	$3,000
+$300k Account	$3,500
+$100k Static	$1,000
+No Maximum After Sixth Payout: Starting from the sixth payout, there’s no maximum payout amount, provided the minimum balance threshold remains in the account after the payout.
+100% Payout Eligibility Guidelines
+To qualify for 100% payouts, traders must first complete five approved payouts. Starting with the sixth payout, you can withdraw 100% of your profits, even if you reach this milestone earlier than four months. By following a steady 8-day payout cycle, you can achieve this in as little as 48 trading days, providing full access to your profits in approximately two months.
+
+Key Highlights:
+
+Eligibility: Complete five approved payouts to access 100% of your profits from the sixth payout onward.
+Faster Access: Achieve this in 48 trading days by maintaining an 8-day payout cycle.
+Live Prop Accounts: Withdraw profits before the sixth payout if transferred to a Live Prop Account.
+Existing Traders: If you’re already receiving 100% payouts or are in your third month, this update does not impact you.
+By following these guidelines, you’ll have streamlined and faster access to your earnings, providing you with more control over your profits.
+
+Probation and Payout Guidelines
+If your account is placed on probation, it signifies that specific compliance guidelines need your attention. To navigate this status, review the details of your probation in your member dashboard: Trader Probation
+
+Understanding the compliance rules and the required next steps is essential to restore your account to good standing.
+
+Multiple Accounts and Payouts: Understanding the Benefits
+At Apex Trader Funding, each account you manage is treated as a separate, stand-alone account. This allows you to maximize flexibility and opportunity when requesting payouts across multiple accounts.
+
+How Payouts Work with Multiple Accounts
+Separate Payouts: Each account operates independently, meaning you can request the maximum payout for each account during every eligible payout period.
+Example Scenario:
+Suppose you have ten (10) $50,000 accounts:
+You can withdraw $2,000 from each account every 8 trading days, for a total of $20,000 across all accounts.
+If you repeat this process over 16 trading days, you could withdraw a total of $40,000.
+This independence allows you to scale your trading and withdrawals based on your overall account structure.
+
+Benefits of Managing Multiple Accounts
+Increased Earning Potential: By leveraging payouts from multiple accounts, you can optimize your income within the same trading periods.
+Risk Management: Multiple accounts allow you to diversify your strategies and reduce the impact of losses on any single account.
+Strategic Flexibility: Traders can apply different strategies to separate accounts, tailoring each to specific market conditions or goals.
+For more information on why maintaining multiple accounts can be advantageous, check out our detailed guide: Benefits of Managing Multiple Accounts.
+
+By managing multiple accounts responsibly, you can enhance both your trading opportunities and your payout potential.
+
+How to Set Up Your Payout Method
+To ensure smooth processing of your payouts, all traders must correctly set up their payout method in the Apex dashboard. The process is different for U.S. and non-U.S. traders, so follow the appropriate steps below based on your location.
+
+Here’s what you need to do to set up your payout method:
+
+Log in to your Apex dashboard.
+Select Payout Method from the available options on your Apex dashboard.
+Select International from the dropdown menu for Non-U.S. Traders.
+Enter your personal details 
+Select Direct Deposit from the dropdown menu for U.S. Traders.
+Enter your bank details, including your ACH routing number and bank account number.
+Important: Ensure you use the correct ACH routing number and not the wire transfer number.
+Enter your payment details (bank information) and save.
+For International traders, once you’ve completed these steps, your payout method will be set to International, and you’ll receive an invitation email from Plane to link your local bank account.
+
+Company Payout Requests
+For company payouts, fill out the payout form as follows:
+
+First Name: Enter the company name (e.g., ABC Company LLC).
+Please ensure there are no special characters or symbols.
+Last Name: Enter Company to reflect the business entity.
+How to Ensure Accurate Payout Processing
+Matching Bank Country and Primary Residency: The country of your bank account must match your primary country of residency. For example:
+If you live in the U.S., your bank account must also be based in the U.S.
+If you live outside the U.S., your bank account must match the country where you reside.
+Example 1: U.S. Resident
+Residency: John Smith resides in Texas, U.S.
+Bank Account: John provides the details of his U.S.-based bank account, including the ACH routing number, bank name, and account number.
+Status: John’s payout request is approved because his bank country matches his residency, and his details are accurate.
+Example 2: Non-U.S. Resident
+Residency: Maria Lopez resides in Spain with a valid Spanish work permit.
+Bank Account: Maria enters her details in the "International" section of the Payout Method and saves her details.
+Status: Maria receives an email from Plane, links her account, and her payout is processed seamlessly.
+Example 3: Mismatched Details
+Residency: James Brown resides in Canada but lists a U.S.-based bank account.
+Issue: The payout is rejected because the bank account country does not match his residency.
+Resolution: James updates his details in the "International" section of the Payout Method and saves his details, and his request is approved.
+Accuracy is Key: Make sure all information on your payout form is correct. Incorrect or incomplete details will result in delays or the rejection of your payout request. Ensure your ACH details are accurate before submitting your request.
+How to Request Your Payout
+To request your payout from Apex Trader Funding, follow these simple steps to ensure everything goes smoothly. Whether it’s your first time or you’ve requested payouts before, this process is quick and easy. Just make sure all the details are correct so we can get your payout processed without delay!
+
+Log in to Your Apex Dashboard
+First, head over to the Apex Trader Funding Dashboard. Use your login credentials to access your account.
+Navigate to Payout Request
+Once you're in your dashboard, look to the left-hand menu. You’ll see an option labeled Payout Request. Go ahead and click on it to start the process.
+Follow the Prompts
+After clicking on Payout Request, you'll be guided through a series of prompts. These are simple steps where you’ll enter details about your payout. Double-check everything—make sure the information matches your trading account and that there are no errors. Accuracy is key to ensuring your payout is processed without any issues.
+Submit Your Request
+Once you’ve reviewed everything and are confident the details are correct, go ahead and submit your payout request. That’s it! You're done!
+What Happens Next?
+Confirmation Email:
+After submitting your payout request, the relevant department will review it to make sure everything is in order. Once it’s approved, you’ll receive a confirmation email confirming your request.
+Check Your Spam or Junk Folder:
+If you don’t see the confirmation email right away, don’t panic. Sometimes emails end up in your spam or junk folder. Be sure to check there if you can’t find it in your inbox.
+Payout Request Processing and Timeline
+Once you submit your payout request, it will undergo a structured review, approval, and transfer process. Below is a detailed explanation of each step to help you understand the timeline and what to expect during the payout process.
+
+Payout Request Submission and Review: Once you submit your payout request, it will be reviewed and either approved or denied within 2 business days, depending on the demand and any holidays. During peak periods, the review time may vary slightly.
+If your payout is denied, you’ll be informed of the reasons for the denial, and you can make the necessary adjustments for future payout requests.
+Funds Transfer Initiation:  After your payout is approved, the funds will be transferred to your selected payout method. The funds transfer will generally be initiated within 3-4 business days after approval. The processing time for transferring the funds depends on the payment method you’ve selected.
+For U.S. traders, this is typically ACH (Automated Clearing House), and the funds will be transferred to your U.S. bank account.
+For non-U.S. traders, payments are processed via Plane (a payment gateway), and additional steps will be involved (detailed below).
+Funds Arrival: After the transfer is initiated, it can take an additional 3-7 business days for the funds to appear in your bank account, depending on your bank’s processing time. Banks may take varying amounts of time to process and reflect the incoming payment, so it’s essential to check with your bank for specific timing.
+International Payments via Plane: For non-U.S. traders, once your payout request is approved, you will receive an invitation email from Plane, typically within 1-4 business days, depending on the volume of requests. Follow the instructions in the email to link your bank account. 
+Be sure to check your spam or junk folders in case the invitation email ends up there.
+After linking your account, Plane will process the payment, which usually takes 3-7 business days for completion.
+Important Reminders:
+
+Do NOT Submit Help Desk Tickets Immediately After Payout Request:
+Please do not submit a Help Desk ticket immediately after updating your payout method or once your payout request is approved. Invitation emails are sent at different points during the processing period, not immediately.
+Payment Status – PAID:
+Once your payout is marked as PAID in the system, it means the funds have been successfully sent to your Plane account (for non-U.S. traders) or your bank account (for U.S. traders). The funds will be available once processing is complete.
+Tax Information for Apex Trader Funding Payouts
+Understanding the tax requirements for your payouts is essential. Below are the tax guidelines for U.S. and non-U.S. traders, along with recommendations for managing your tax obligations.
+
+For U.S. Citizens and Entities
+Contractor Status: U.S. citizens and entities are paid as individual contractors.
+Tax Form: You will receive a 1099-NEC form by January 31 each year for tax reporting purposes.
+Responsibility: Ensure you include your Apex income in your annual tax filings as per IRS regulations.
+For Non-U.S. Citizens
+No Tax Reports: Non-U.S. citizens do not receive tax forms or reports from Apex Trader Funding.
+Tax Filing Responsibility: You are responsible for adhering to the tax laws in your country of residence regarding income earned from Apex.
+Tax Advice and Inquiries
+Tax Advice: Apex cannot provide tax advice. For questions related to taxes, filings, citizenship, or work visas, consult a qualified tax advisor.
+Help Desk Policy: The Apex Help Desk is unable to assist with tax-related inquiries. Please do not submit tax questions to the Help Desk.
+By understanding these tax requirements and seeking guidance from a professional, you can ensure compliance with your local tax regulations while trading with Apex Trader Funding.
