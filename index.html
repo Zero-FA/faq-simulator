@@ -141,160 +141,340 @@
       );
     }
 
-    // ================= MAIN APP =================
-    function App() {
-      const [channelId, setChannelId] = useState(CHANNELS[0].id);
-      const [faqMd, setFaqMd] = useState('');
-      const [messages, setMessages] = useState([]);
-      const [history, setHistory] = useState([]);
-      const [draft, setDraft] = useState('');
-      const [started, setStarted] = useState(false);
-      const [finished, setFinished] = useState(false);
-      const [qCount, setQCount] = useState(0);
-      const [grading, setGrading] = useState(null);
-      const [typing, setTyping] = useState(false);
-      const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
+// ================= MAIN APP =================
+function App() {
+  const [channelId, setChannelId] = useState(CHANNELS[0].id);
+  const [faqMd, setFaqMd] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [started, setStarted] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [qCount, setQCount] = useState(0);
+  const [grading, setGrading] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
-      // NEW: store results per channel (persists until refresh)
-      const [scores, setScores] = useState({});
-      // shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
+  // track asked chunks/questions in this run so Coach can avoid repeats
+  const [usedIndexes, setUsedIndexes] = useState([]);
+  const [usedQuestions, setUsedQuestions] = useState([]);
 
-      // sequential gating state
-      const [unlockedIdx, setUnlockedIdx] = useState(0);
-      const [completedIds, setCompletedIds] = useState(new Set());
-      const [notice, setNotice] = useState('');
+  // light client-side similarity guard (belt & suspenders)
+  function nrm(s){ return String(s||'').toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim(); }
+  function jSim(a,b){
+    const A=new Set(nrm(a).split(' ').filter(Boolean)), B=new Set(nrm(b).split(' ').filter(Boolean));
+    if(!A.size||!B.size) return 0; let inter=0; for(const w of A) if(B.has(w)) inter++; return inter/(A.size+B.size-inter);
+  }
 
-      // NEW: overall summary modal
-      const [showSummary, setShowSummary] = useState(false);
+  // NEW: store results per channel (persists until refresh)
+  const [scores, setScores] = useState({});
+  // shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
 
-      const scrollRef = useRef(null);
-      const timerRef = useRef(null);
-      const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  // sequential gating state
+  const [unlockedIdx, setUnlockedIdx] = useState(0);
+  const [completedIds, setCompletedIds] = useState(new Set());
+  const [notice, setNotice] = useState('');
 
-      // load faq on channel switch (do NOT wipe scores)
-      useEffect(()=>{
-        (async ()=>{
-          try {
-            const md = await fetchFAQMd(channelId);
-            setFaqMd(md);
-            // reset ephemeral run state
-            if (timerRef.current) clearInterval(timerRef.current);
-            setStarted(false); setFinished(false);
-            setQCount(0); setSecondsLeft(RUN_SECONDS);
-            setHistory([]); setGrading(null);
-            setDraft('');
-            setMessages([]);
-          } catch(e){
-            console.error(e);
-          }
-        })();
-      }, [channelId]);
+  // NEW: overall summary modal
+  const [showSummary, setShowSummary] = useState(false);
 
-      useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
+  const scrollRef = useRef(null);
+  const timerRef = useRef(null);
+  const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
+  // load faq on channel switch (do NOT wipe scores)
+  useEffect(()=>{
+    (async ()=>{
+      try {
+        const md = await fetchFAQMd(channelId);
+        setFaqMd(md);
 
-      function startTimer(){
-        timerRef.current = setInterval(()=>{
-          setSecondsLeft(prev=>{
-            if(prev<=1){
-              clearInterval(timerRef.current);
-              endRun();
-              return 0;
-            }
-            return prev-1;
-          })
-        },1000);
-      }
-
-      async function startRun(){
-        setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
-        startTimer();
-        setMessages(m=>[...m, {from:'bot', text:"I’ll ask you 5 quick questions. Answer using the FAQs. Ready?", time: now()}]);
-        await askNext();
-      }
-
-      // ask next question from Coach API
-      async function askNext(){
-        if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
-        setTyping(true);
-        try {
-          if (USE_MOCK) {
-            const text = "Sample question?";
-            setMessages(m=>[...m, {from:'bot', text, time: now()}]);
-            setHistory(h=>[...h, {role:'assistant', content:text}]);
-            return;
-          }
-          const res = await fetch(COACH_URL, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            // pass channel name or id; server supports name
-            body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
-          });
-          const txt = await res.text();
-          let data;
-          try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
-          if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
-          const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
-          setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
-          setHistory(h=>[...h, {role:'assistant', content:qText}]);
-        } catch (e) {
-          setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
-        } finally {
-          setTyping(false);
-        }
-      }
-
-      // finish run, save results for this channel, unlock next
-      function endRun(passedResults){
-        if (finished) return;
+        // reset ephemeral run state
         if (timerRef.current) clearInterval(timerRef.current);
-        setFinished(true);
+        setStarted(false);
+        setFinished(false);
+        setQCount(0);
+        setSecondsLeft(RUN_SECONDS);
+        setHistory([]);
+        setGrading(null);
+        setDraft('');
+        setMessages([]);
 
-        const results = passedResults ?? (grading?.results || []);
-        const total = results.filter(r=>r.passed).length;
-        const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
+        // RESET de-dupe trackers on channel change too
+        setUsedIndexes([]);
+        setUsedQuestions([]);
 
-        // Save per-channel score (persists until refresh)
-        setScores(prev => {
-          const next = {
-            ...prev,
-            [channelId]: { results, total, pct, completedAt: Date.now() }
-          };
-          return next;
-        });
+      } catch(e){
+        console.error(e);
+      }
+    })();
+  }, [channelId]);
 
-        setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+  useEffect(()=>{
+    scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' });
+  }, [messages, typing]);
 
-        // Mark channel completed & unlock next
-        setCompletedIds(prevSet => {
-          const nextSet = new Set(prevSet).add(channelId);
-          const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
-          setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
+  function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
 
-          // If ALL channels finished, show overall summary modal
-          Promise.resolve().then(()=>{
-            if (nextSet.size === CHANNELS.length) {
-              setShowSummary(true);
-            }
-          });
+  function startTimer(){
+    timerRef.current = setInterval(()=>{
+      setSecondsLeft(prev=>{
+        if(prev<=1){
+          clearInterval(timerRef.current);
+          endRun();
+          return 0;
+        }
+        return prev-1;
+      })
+    },1000);
+  }
 
-          return nextSet;
-        });
+  async function startRun() {
+    setStarted(true);
+    setFinished(false);
+    setQCount(0);
+    setGrading(null);
+    setMessages([]);
+    setHistory([]);
+    startTimer();
+
+    // reset de-dupe trackers at start of a run
+    setUsedIndexes([]);
+    setUsedQuestions([]);
+
+    // initial bot message
+    setMessages(m => [
+      ...m,
+      { from: 'bot', text: "I’ll ask you 5 quick questions. Answer using the FAQs. Ready?", time: now() }
+    ]);
+
+    await askNext();
+  }
+
+  // get next question from Coach, with client-side duplicate guard
+  async function askNext(attempt = 0){
+    if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
+    if (attempt > 4) { // safety
+      setMessages(m => [...m, { from:'bot', text:"Skipping a duplicate—moving on.", time: now() }]);
+      return;
+    }
+    setTyping(true);
+    try {
+      if (USE_MOCK) {
+        const text = "Sample question?";
+        setMessages(m => [...m, { from:'bot', text, time: now() }]);
+        setHistory(h => [...h, { role:'assistant', content:text }]);
+        return;
       }
 
-   // submit trainee message -> let Coach chat/classify -> only grade if it's an actual answer
+      const res = await fetch(COACH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          channel: CHANNELS.find(c => c.id === channelId)?.name || channelId,
+          history,
+          faqMd,
+          usedIndexes,
+          usedQuestions
+        })
+      });
+
+      const txt = await res.text();
+      let data;
+      try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
+      if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
+
+      const qText = (data?.reply?.content || "").trim() || "Ask: (No coach output)";
+
+      // client-side guard against back-to-back near-duplicates
+      const lastBot = [...messages].reverse().find(m => m.from === 'bot')?.text || '';
+      if (lastBot && (nrm(qText) === nrm(lastBot) || jSim(qText, lastBot) >= 0.78)) {
+        setUsedIndexes(data?.usedIndexes || usedIndexes);
+        setUsedQuestions(data?.usedQuestions || usedQuestions);
+        setTyping(false);
+        await askNext(attempt + 1);
+        return;
+      }
+
+      // show question
+      setMessages(m => [...m, { from:'bot', text:qText, time: now() }]);
+      setHistory(h => [...h, { role:'assistant', content:qText }]);
+
+      // persist de-dupe state returned by server
+      if (Array.isArray(data?.usedIndexes)) setUsedIndexes(data.usedIndexes);
+      if (Array.isArray(data?.usedQuestions)) setUsedQuestions(data.usedQuestions);
+
+    } catch (e) {
+      setMessages(m => [...m, { from:'bot', text:`Coach error: ${e.message}`, time: now() }]);
+    } finally {
+      setTyping(false);
+    }
+  }
+
+  // submit trainee message -> let Coach chat/classify -> only grade if it's an actual answer
+  async function submit(){
+    if (!draft.trim() || !started || finished) return;
+
+    const userText = draft.trim();
+    setDraft('');
+
+    // echo trainee message
+    setMessages(m => [...m, { from:'user', text:userText, time: now() }]);
+    setHistory(h => [...h, { role:'user', content:userText }]);
+
+    // find the last bot question shown
+    const lastQuestion = [...messages].reverse().find(m => m.from === 'bot')?.text || 'Coach question';
+
+    // 1) Ask Coach if this is a clarification or an answer
+    try {
+      const coachRes = await fetch(COACH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          task: 'chat',
+          traineeMsg: userText,
+          lastQuestion,     // used to build a helper reply if needed
+          // scopeHint: 'Tradovate' // optional if your UI already knows scope
+        })
+      });
+
+      const coachTxt = await coachRes.text();
+      let coachData;
+      try { coachData = JSON.parse(coachTxt); } catch { throw new Error(`Coach HTTP ${coachRes.status}: ${coachTxt}`); }
+      if (!coachRes.ok) throw new Error(coachData?.error || `Coach HTTP ${coachRes.status}`);
+
+      const result = coachData?.result;
+
+      // If Coach says it's a clarification, reply and DO NOT grade
+      if (result?.type === 'clarification') {
+        const reply = result?.reply || 'Here’s the scope. Please answer the question now.';
+        setMessages(m => [...m, { from:'bot', text: reply, time: now() }]);
+        return; // keep same question active
+      }
+      // else it's an answer → fall through to grading
+    } catch (e) {
+      console.warn('Coach chat failed, falling back to grading:', e.message);
+    }
+
+    // 2) Grade the answer (also extract the real question if last bot line was a helper)
+    let effectiveQuestion = lastQuestion;
+    const helperMatch = /now please answer:\s*(.+)$/i.exec(lastQuestion);
+    if (helperMatch && helperMatch[1]) effectiveQuestion = helperMatch[1].trim();
+
+    try {
+      const res = await fetch(GRADE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          channel: CHANNELS.find(c => c.id === channelId)?.name || channelId,
+          question: effectiveQuestion,
+          answer: userText,
+          faqMd
+        })
+      });
+
+      const txt = await res.text();
+      let graded;
+      try { graded = JSON.parse(txt); } catch { throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`); }
+      if (!res.ok) {
+        const msg = graded?.error || `HTTP ${res.status}`;
+        const detail = typeof graded?.detail === 'string' ? graded.detail : JSON.stringify(graded?.detail || '');
+        throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
+      }
+
+      const nextCount = qCount + 1;
+      setQCount(nextCount);
+
+      setGrading(g => {
+        const prev = g?.results || [];
+        const cur = { qText: effectiveQuestion, ans: userText, ...graded };
+        const nextResults = [...prev, cur];
+        if (nextCount >= QUESTIONS_PER_RUN) {
+          endRun(nextResults);
+        } else {
+          askNext();
+        }
+        return { results: nextResults };
+      });
+
+    } catch (e) {
+      const nextCount = qCount + 1;
+      setQCount(nextCount);
+      setGrading(g => {
+        const prev = g?.results || [];
+        const cur = {
+          qText: effectiveQuestion,
+          ans: userText,
+          passed: false,
+          why: `Grader error: ${e.message}`,
+          matched: [],
+          missing: [],
+          flags: []
+        };
+        const nextResults = [...prev, cur];
+        if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
+        else askNext();
+        return { results: nextResults };
+      });
+    }
+  }
+
+  // finish run, save results for this channel, unlock next
+  function endRun(passedResults){
+    if (finished) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setFinished(true);
+
+    const results = passedResults ?? (grading?.results || []);
+    const total = results.filter(r=>r.passed).length;
+    const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
+
+    // Save per-channel score (persists until refresh)
+    setScores(prev => {
+      const next = {
+        ...prev,
+        [channelId]: { results, total, pct, completedAt: Date.now() }
+      };
+      return next;
+    });
+
+    setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+
+    // Mark channel completed & unlock next
+    setCompletedIds(prevSet => {
+      const nextSet = new Set(prevSet).add(channelId);
+      const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
+      setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
+
+      // If ALL channels finished, show overall summary modal
+      Promise.resolve().then(()=>{
+        if (nextSet.size === CHANNELS.length) {
+          setShowSummary(true);
+        }
+      });
+
+      return nextSet;
+    });
+  }
+
+  // ...the rest of your component (UI JSX) continues below
+}
+
+// submit trainee message -> let Coach chat/classify -> only grade if it's an actual answer
 async function submit(){
   if (!draft.trim() || !started || finished) return;
 
   const userText = draft.trim();
   setDraft('');
-  setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
-  setHistory(h=>[...h, {role:'user', content:userText}]);
 
-  const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+  // echo trainee message
+  setMessages(m => [...m, { from:'user', text:userText, time: now() }]);
+  setHistory(h => [...h, { role:'user', content:userText }]);
 
-  // 1) Let Coach decide: clarification vs answer (and reply if clarification)
+  // find the last bot question shown
+  const lastQuestion = [...messages].reverse().find(m => m.from === 'bot')?.text || 'Coach question';
+
+  // 1) Ask Coach if this is a clarification or an answer
   try {
     const coachRes = await fetch(COACH_URL, {
       method: 'POST',
@@ -302,8 +482,8 @@ async function submit(){
       body: JSON.stringify({
         task: 'chat',
         traineeMsg: userText,
-        lastQuestion,         // Coach uses this to build a one-liner reply
-        // scopeHint: 'Tradovate' // optional: pass if you already know scope
+        lastQuestion,     // used to build a helper reply if needed
+        // scopeHint: 'Tradovate' // optional if your UI already knows scope
       })
     });
 
@@ -314,27 +494,29 @@ async function submit(){
 
     const result = coachData?.result;
 
-    // If Coach says it's a clarification, show helper reply and DO NOT grade or advance counters
+    // If Coach says it's a clarification, reply and DO NOT grade
     if (result?.type === 'clarification') {
       const reply = result?.reply || 'Here’s the scope. Please answer the question now.';
-      setMessages(m=>[...m, {from:'bot', text: reply, time: now()}]);
-      return; // keep the same question active
+      setMessages(m => [...m, { from:'bot', text: reply, time: now() }]);
+      return; // keep same question active
     }
-
-    // Otherwise: it's an ANSWER – continue to grader below
+    // else it's an answer → fall through to grading
   } catch (e) {
-    // If Coach chat fails for any reason, fall back to old behavior (grade directly)
     console.warn('Coach chat failed, falling back to grading:', e.message);
   }
 
-  // 2) Grade the answer (unchanged behavior)
+  // 2) Grade the answer (also extract the real question if last bot line was a helper)
+  let effectiveQuestion = lastQuestion;
+  const helperMatch = /now please answer:\s*(.+)$/i.exec(lastQuestion);
+  if (helperMatch && helperMatch[1]) effectiveQuestion = helperMatch[1].trim();
+
   try {
     const res = await fetch(GRADE_URL, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({
-        channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
-        question: lastQuestion,
+        channel: CHANNELS.find(c => c.id === channelId)?.name || channelId,
+        question: effectiveQuestion,
         answer: userText,
         faqMd
       })
@@ -352,9 +534,9 @@ async function submit(){
     const nextCount = qCount + 1;
     setQCount(nextCount);
 
-    setGrading(g=>{
+    setGrading(g => {
       const prev = g?.results || [];
-      const cur = { qText:lastQuestion, ans:userText, ...graded };
+      const cur = { qText: effectiveQuestion, ans: userText, ...graded };
       const nextResults = [...prev, cur];
       if (nextCount >= QUESTIONS_PER_RUN) {
         endRun(nextResults);
@@ -367,10 +549,10 @@ async function submit(){
   } catch (e) {
     const nextCount = qCount + 1;
     setQCount(nextCount);
-    setGrading(g=>{
+    setGrading(g => {
       const prev = g?.results || [];
       const cur = {
-        qText: lastQuestion,
+        qText: effectiveQuestion,
         ans: userText,
         passed: false,
         why: `Grader error: ${e.message}`,
