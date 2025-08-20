@@ -228,3 +228,188 @@ do the following:
 
 Critical:
 OCO (One Cancels Other) orders for Rithmic are locally simulated on your PC. This means that NinjaTrader must be connected to your broker in order for the OCO capability to function. If you are disconnected and one of the OCO orders is filled, the other WILL NOT be automatically canceled.
+
+Tradovate Setup & TradingView
+Not yet followed by anyone
+Logging Into Your First Tradovate Account
+After you have purchased your first Tradovate account and received your Tradovate login credentials, go to the Tradovate welcome page. Use your desktop browser, NOT the app. Sign in with your Tradovate username and password.
+
+Note: Account creation, resets, and Performance Accounts may take longer than expected during times of high volume and market volatility. 
+
+We appreciate your patience.  If you have not received your account after six hours from the time you ordered your account, please submit a help desk ticket.
+
+Depending on user demand, activating the data may take 10 to 90 minutes after you sign the data agreements. 
+
+ 
+
+Don't send a help desk ticket regarding the lack of live data until at least 90 minutes have elapsed since signing the data agreements.
+
+Login Credentials
+
+
+NOTE: Make sure your username and password do not contain spaces, including at the beginning and end.
+
+
+
+ 
+
+Fill out your information and sign the document. 
+
+Select NON PROFESSIONAL
+
+
+
+ 
+
+You will find your accounts under the Simulation section. Click Launch.
+
+
+
+ 
+
+This is your Tradovate dashboard, where you will find your account.
+
+
+
+ 
+
+To learn more about the Tradovate Dashboard and how to set up your chart/dashboard, visit their support page HERE.
+
+ 
+
+Tradovate & TradingView Connection
+You MUST HAVE an active and tradable account.
+
+After you have signed up and logged into your Tradovate account, follow these instructions to activate and log in to TradingView.
+
+Failing to follow the instructions given here can result in seeing errors like:
+
+240309 TradingView error 1.png
+
+Or your Add-on section showing the following:
+
+"TradingView Add-On is charging me $9.99."
+
+Meeting the requirements allows you to use the TradingView service for free, but you must remember to renew your subscription every month. Please note, the free TradingView add-on via Tradovate includes data that updates every 5 seconds on the TradingView Chart. For continuous data, you are required to purchase a TradingView subscription.  
+
+ 
+
+Connecting Tradovate to your TradingView Account
+When you log in to Tradovate for the first time, make sure you select NON-PROFESSIONAL on the Uniform Subscriber Agreement. Otherwise, you will not receive real-time data and will incur a $300 per month data fee.
+
+Please note that data activation may take between 10 to 90 minutes after signing the agreements, depending on user volume. This only applies to the first time you sign up. Hold off on submitting a help desk ticket about non-live data until 90 minutes after you have signed the data agreements.
+
+Instructions:
+1. Click on the Tradovate application settings.
+
+
+
+ 
+
+2. Click on the Add-Ons tab, then click on Activate in the TradingView frame.
+
+Please note: If TradingView is not enabled for free, it can take four hours or more for your Tradovate account to be fully activated and enable TradingView for free. It is included in your Tradovate subscription with us.
+
+
+
+ 
+
+3. Log out and back into Tradovate for the activation to take effect.
+
+
+
+ 
+
+4. Next, go to the TradingView website and sign up or log into your TradingView account. Once the charts come up, click on the Trading Panel tab in the lower frame, then click on Tradovate.
+
+
+
+
+
+ 
+
+ 
+
+5. Move your mouse over the Tradovate icon and click the Connect button.
+
+Select Tradovate and log in to your Tradovate account.
+
+image_2024_02_16T23_09_25_806Z.png
+
+ 
+
+6. Click on the Demo button. Next, use the Tradovate Username and Password found on the Apex Trader Funding Trader Dashboard. Then click Connect.
+
+mceclip1.png
+
+ 
+
+7. Once you click Connect, if all of the information has been filled in correctly, you will see something like this in your Trading Panel:
+
+mceclip2.png
+
+If you see the "Tradovate" icon and see your accounts in the account dropdown, you have successfully connected to TradingView.
+
+For further help in setting up charts and indicators in TradingView, contact TradingView Support.
+
+WealthCharts Setup and Connection
+Not yet followed by anyone
+Introduction: Welcome to WealthCharts!
+WealthCharts provides a competitive edge by delivering instantly available trading ideas, in-depth research, and advanced tools based on proven strategies used by top traders worldwide. Whether you're logging in for the first time or reconnecting, this guide will help you set up WealthCharts and integrate your Apex accounts seamlessly.
+
+Logging Into Your Apex Trader Funding Account
+To get started with your brand-new Apex Trader Funding account on WealthCharts, follow the video below! It provides a step-by-step guide to the installation, configuration, and utilization of key features, aiming to enhance the user experience and proficiency with the platform.
+
+Play
+
+
+00:00
+05:37
+Mute
+
+Enable captions
+Settings
+Enter fullscreen
+
+Play
+
+After watching this video, you'll have everything you need to get up and running with your Apex Trader Funding account on WealthCharts. It's designed to simplify the setup process and help you get comfortable with all the tools you’ll be using. Check it out and start exploring today!
+
+Broker Portfolio
+The Broker Portfolio is the window where you can monitor your active positions and any orders placed. For ease of use, this component is split into two tabs that are available at the top: Positions and Orders. 
+
+Open Positions
+Here, details are available about any positions that your trading account may be carrying at this time.
+
+
+
+Each position listed here has the following data available:
+
+Symbol—which symbol is being traded.
+
+Quantity—how many shares/contracts have been acquired in this trade. If this is a sell trade, a “-“ (negative) sign will precede the amount.
+
+Direction—tells you whether this is a short or a long trade.
+
+Cost Basis—the entry price of the trade.
+
+P/L—shows the trade's current profit/loss balance.
+
+Orders
+This window offers a detailed description of all the orders on this account, both active and those that have already been filled or canceled. Any orders that are still active will also have a “cancel” button next to them.
+
+
+
+Each of the orders on this list will also have some details available.
+
+Symbol—which symbol is being traded.
+
+Date—the date and time when the order was placed.
+
+Order Type can be a limit, a stop, or a market order.
+
+Orders—this is the size of the order and the price level it was set at.
+
+Fill Price—the price level at which this order was filled.
+
+Status—the order's current status: Active, Completed or Canceled.
