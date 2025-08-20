@@ -23,9 +23,9 @@ function isTooSimilar(q, prevList, threshold = 0.78) {
   const nq = norm(q);
   return prevList.some(p => {
     const np = norm(p);
-    if (nq === np) return true;                                 // exact after normalization
-    if (Math.abs(nq.length - np.length) < 12 && nq.includes(np)) return true; // near substring
-    return jaccardSim(nq, np) >= threshold;                     // token overlap
+    if (nq === np) return true;
+    if (Math.abs(nq.length - np.length) < 12 && nq.includes(np)) return true;
+    return jaccardSim(nq, np) >= threshold;
   });
 }
 function chunkText(t, n = 2800) {
@@ -38,57 +38,31 @@ function pickRandom(arr) {
 }
 
 /* ------------------ clarification classification ------------------ */
-/**
- * Fast, local heuristics to decide if a trainee message is a clarification.
- * Returns { verdict: 'clarification' | 'answer', confidence: 0..1, reason: string }
- */
 function heuristicClarifier(s) {
   const raw = String(s || '').trim();
   const text = norm(raw);
 
-  if (!raw) {
-    return { verdict: 'clarification', confidence: 0.99, reason: 'empty message' };
-  }
+  if (!raw) return { verdict: 'clarification', confidence: 0.99, reason: 'empty' };
 
-  // Obvious “what/which/do you mean” style questions
   const cues = [
-    'is this',
-    'do you mean',
-    'which one',
-    'which platform',
-    'which account',
-    'which section',
-    'are you asking',
-    'what do you mean',
-    'what does this mean',
-    'can you clarify',
-    'clarify',
-    'not sure',
-    'could you specify',
-    'are we talking about',
-    'is it about',
+    'is this','do you mean','which one','which platform','which account','which section',
+    'are you asking','what do you mean','what does this mean','can you clarify','clarify',
+    'not sure','could you specify','are we talking about','is it about'
   ];
 
-  const isQuestionMark = raw.endsWith('?');
-  const tokenCount = text.split(' ').filter(Boolean).length;
+  const isQ = /\?\s*$/.test(raw);
+  const tokens = text.split(' ').filter(Boolean).length;
 
-  if (isQuestionMark && tokenCount <= 6) {
-    return { verdict: 'clarification', confidence: 0.9, reason: 'very short question' };
+  if (isQ && tokens <= 6) return { verdict: 'clarification', confidence: 0.9, reason: 'very short question' };
+
+  if (isQ) for (const c of cues) if (text.includes(c)) {
+    return { verdict: 'clarification', confidence: 0.85, reason: `matched cue "${c}"` };
   }
 
-  if (isQuestionMark) {
-    for (const c of cues) {
-      if (text.includes(c)) {
-        return { verdict: 'clarification', confidence: 0.85, reason: `matched cue "${c}"` };
-      }
-    }
-  }
-
-  if (isQuestionMark && /^(is|are|does|do)\s+(this|that|it|you)\b/i.test(raw)) {
+  if (isQ && /^(is|are|does|do)\s+(this|that|it|you)\b/i.test(raw))
     return { verdict: 'clarification', confidence: 0.8, reason: 'meta-question structure' };
-  }
 
-  if (isQuestionMark && /^(which|what|where|who|when|how)\b/i.test(raw)) {
+  if (isQ && /^(which|what|where|who|when|how)\b/i.test(raw)) {
     if (!/\b(price|value|step|button|setting|field|number|time|date|account|contract|qty|quantity)\b/i.test(raw)) {
       return { verdict: 'clarification', confidence: 0.7, reason: 'wh-question lacking factual content' };
     }
@@ -97,24 +71,14 @@ function heuristicClarifier(s) {
   return { verdict: 'answer', confidence: 0.6, reason: 'no strong clarification signals' };
 }
 
-/**
- * Optional LLM fallback for borderline messages.
- * Set CLARIFIER_MODEL (e.g., "gpt-4o-mini"). If unset, this step is skipped.
- */
+/* ----------- optional: tiny LLM fallback for classification --------- */
 async function llmClarifierFallback(message) {
-  const model = process.env.CLARIFIER_MODEL; // optional
-  if (!model) return null;
-
-  if (!process.env.OPENAI_API_KEY) {
-    return null;
-  }
+  const model = process.env.CLARIFIER_MODEL; // e.g., gpt-4o-mini (optional)
+  if (!model || !process.env.OPENAI_API_KEY) return null;
 
   const system = `You are a strict one-word classifier.
-Given a trainee's message in a Q&A training, return EXACTLY one of:
-- "clarification" if the message is asking for clarification, hints, or scope (e.g., "Which platform?")
-- "answer" if the message is an attempt to answer the coach's question.
-
-Return ONLY the single word.`;
+Return ONLY "clarification" if the trainee message is asking for scope/clarity/hints.
+Return ONLY "answer" if it attempts to answer the coach's question.`;
   const user = `Trainee message: ${JSON.stringify(String(message || '').trim())}`;
 
   try {
@@ -133,39 +97,17 @@ Return ONLY the single word.`;
         ],
       }),
     });
-
     const data = await resp.json().catch(() => ({}));
     const out = data?.choices?.[0]?.message?.content?.trim?.().toLowerCase();
     if (out === 'clarification' || out === 'answer') return out;
-  } catch {
-    // swallow
-  }
+  } catch {}
   return null;
 }
 
 /* ---------------- tiny helper for clarification replies ------------ */
-/**
- * Build a one-line clarification response CoachBot can send back.
- * - Tries to infer a scope/platform from the last coach question or a provided hint.
- * - Then prompts the trainee to answer.
- *
- * Args:
- *   lastQuestion: string | undefined
- *   scopeHint: string | undefined  // e.g., "Tradovate"
- *   channel: string | undefined
- *
- * Returns string like:
- *   "This one is about Tradovate. Now please answer: Where can you find the entry price of a trade within the Open Positions section?"
- */
-function buildClarificationReply({ lastQuestion, scopeHint, channel }) {
+function buildClarificationReply({ lastQuestion, scopeHint }) {
   const PLATFORM_HINTS = [
-    'Tradovate',
-    'TradingView',
-    'WealthCharts',
-    'Rithmic',
-    'NinjaTrader Dashboard',
-    'aMember',
-    'Authorize.net',
+    'Tradovate','TradingView','WealthCharts','Rithmic','NinjaTrader Dashboard','aMember','Authorize.net'
   ];
 
   const qRaw = String(lastQuestion || '').trim();
@@ -173,10 +115,7 @@ function buildClarificationReply({ lastQuestion, scopeHint, channel }) {
 
   let detected = null;
   for (const p of PLATFORM_HINTS) {
-    if (qNorm.includes(norm(p))) {
-      detected = p;
-      break;
-    }
+    if (qNorm.includes(norm(p))) { detected = p; break; }
   }
   const scope = scopeHint || detected;
 
@@ -184,10 +123,9 @@ function buildClarificationReply({ lastQuestion, scopeHint, channel }) {
     ? `This one is about ${scope}.`
     : `This one is about the platform referenced in the question.`;
 
-  if (qRaw) {
-    return `${prefix} Now please answer: ${qRaw}`;
-  }
-  return `${prefix} Now please provide your answer.`;
+  return qRaw
+    ? `${prefix} Now please answer: ${qRaw}`
+    : `${prefix} Now please provide your answer.`;
 }
 
 /* ----------------------------- handler ---------------------------- */
@@ -208,7 +146,6 @@ export default async function handler(req, res) {
     }
 
     const {
-      // shared / default
       channel = '#platform-setup',
       history = [],
 
@@ -217,48 +154,77 @@ export default async function handler(req, res) {
       usedIndexes = [],
       usedQuestions = [],
 
-      // classification inputs
-      task,                  // undefined or 'classify'
-      traineeMsg,            // only for task === 'classify'
-      lastQuestion,          // optional: last coach question text (for helper)
-      scopeHint,             // optional: if your UI knows the intended platform/scope, pass it
-
+      // runtime mode
+      task,                  // 'generate' (default), 'classify', or 'chat'
+      traineeMsg,
+      lastQuestion,
+      scopeHint
     } = body || {};
 
-    /* -------------------- branch: classify trainee msg -------------------- */
+    /* -------------------- branch: classify only -------------------- */
     if (task === 'classify') {
       const heur = heuristicClarifier(traineeMsg);
       let verdict = heur.verdict;
       let confidence = heur.confidence;
       let via = 'heuristic';
 
-      // Optional LLM fallback if borderline
       if (confidence < 0.8) {
         const llmVerdict = await llmClarifierFallback(traineeMsg);
-        if (llmVerdict) {
-          verdict = llmVerdict;
-          via = 'llm_fallback';
-          confidence = Math.max(confidence, 0.85);
-        }
+        if (llmVerdict) { verdict = llmVerdict; via = 'llm_fallback'; confidence = Math.max(confidence, 0.85); }
       }
 
       const helperReply =
-        verdict === 'clarification'
-          ? buildClarificationReply({ lastQuestion, scopeHint, channel })
-          : null;
+        verdict === 'clarification' ? buildClarificationReply({ lastQuestion, scopeHint }) : null;
 
       return res.status(200).json({
         result: {
           type: verdict,                  // 'clarification' | 'answer'
-          nextAction: verdict === 'clarification' ? 'ask_for_specifics' : 'grade',
+          nextAction: verdict === 'clarification' ? 'respond_with_helper' : 'send_to_grader',
           confidence,
           via,
-          helperReply,                    // one-line reply CoachBot can send
-        },
+          helperReply,
+          capturedAnswer: verdict === 'answer' ? String(traineeMsg || '').trim() : null
+        }
       });
     }
 
-    /* -------------------- default branch: generate question -------------------- */
+    /* -------------------- branch: chat (no grading) ----------------
+       Goal: allow normal convo.
+       - If traineeMsg is a clarification: return a 1-line reply (and DO NOT grade).
+       - If it's an answer: DO NOT reply; signal the app to send it to the grader.
+    -----------------------------------------------------------------*/
+    if (task === 'chat') {
+      const heur = heuristicClarifier(traineeMsg);
+      let verdict = heur.verdict;
+      let confidence = heur.confidence;
+
+      if (confidence < 0.8) {
+        const llmVerdict = await llmClarifierFallback(traineeMsg);
+        if (llmVerdict) { verdict = llmVerdict; confidence = Math.max(confidence, 0.85); }
+      }
+
+      if (verdict === 'clarification') {
+        const reply = buildClarificationReply({ lastQuestion, scopeHint });
+        return res.status(200).json({
+          result: {
+            type: 'clarification',
+            reply,                 // UI should display this message from Coach
+            nextAction: 'await_answer' // keep the same question active
+          }
+        });
+      }
+
+      // It's an answer → don't give feedback, just hand it to grader
+      return res.status(200).json({
+        result: {
+          type: 'answer',
+          capturedAnswer: String(traineeMsg || '').trim(),
+          nextAction: 'send_to_grader'   // your app should call the grader service now
+        }
+      });
+    }
+
+    /* -------------------- default: generate question --------------- */
     if (!faqMd) return res.status(400).json({ error: 'Missing faqMd' });
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ error: 'Missing OPENAI_API_KEY for question generation' });
@@ -274,7 +240,6 @@ export default async function handler(req, res) {
     let available = chunks.map((_, i) => i).filter(i => !usedIdx.includes(i));
     if (available.length === 0) available = chunks.map((_, i) => i);
 
-    // Strong system prompt (one-question flow)
     const system = `
 You are CoachBot for a futures prop firm training simulation.
 
@@ -316,7 +281,7 @@ Produce ONE new question that obeys all rules. Do not include any answers. Retur
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1',     // keep your original model (swap when desired)
+          model: 'gpt-4.1',
           temperature: 0.4,
           messages: [
             { role: 'system', content: system },
@@ -360,7 +325,7 @@ Produce ONE new question that obeys all rules. Do not include any answers. Retur
     return res.status(200).json({
       reply: { role: 'assistant', content: question },
       usedIndexes: nextUsedIdx,
-      usedQuestions: nextUsedQs,
+      usedQuestions: nextUsedQs
     });
   } catch (err) {
     return res.status(500).json({ error: 'Unhandled Coach error', detail: String(err) });
