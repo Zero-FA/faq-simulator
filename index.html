@@ -698,56 +698,61 @@ async function submit(){
       );
     }
 
-    // ================= ACCESS GATE =================
-    function AccessGate({ onAccess }) {
-      const [codeDraft, setCodeDraft] = useState('');
-      const [checking, setChecking] = useState(false);
-      const [accessErr, setAccessErr] = useState('');
+// ================= ACCESS GATE =================
+function AccessGate({ onAccess }) {
+  const [codeDraft, setCodeDraft] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [accessErr, setAccessErr] = useState('');
 
-      async function handleAccessSubmit(e) {
-        e.preventDefault();
-        if (!codeDraft.trim()) return;
-        setChecking(true);
-        setAccessErr('');
-        try {
-          const r = await fetch(CHECK_ACCESS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: codeDraft.trim() })
-          });
-          const data = await r.json().catch(() => ({}));
-          if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
-          onAccess(); // no persistence: asks again on refresh
-          setCodeDraft('');
-        } catch (err) {
-          setAccessErr(err.message || 'Invalid code');
-        } finally {
-          setChecking(false);
-        }
-      }
-
-      return (
-        <div className="h-screen flex items-center justify-center bg-slate-900">
-          <form onSubmit={handleAccessSubmit} className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80">
-            <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
-            <input className="border rounded px-3 py-2" placeholder="Access code" value={codeDraft} onChange={e => setCodeDraft(e.target.value)}/>
-            {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
-            <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50" disabled={checking}>
-              {checking ? 'Checking…' : 'Enter'}
-            </button>
-          </form>
-        </div>
-      );
+  async function handleAccessSubmit(e) {
+    e.preventDefault();
+    if (!codeDraft.trim()) return;
+    setChecking(true);
+    setAccessErr('');
+    try {
+      const r = await fetch(CHECK_ACCESS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: codeDraft.trim() })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
+      onAccess(); // toggles gate off
+      setCodeDraft('');
+    } catch (err) {
+      setAccessErr(err.message || 'Invalid code');
+    } finally {
+      setChecking(false);
     }
+  }
 
-    // Root: gate → app
-    function Root() {
-      const [accessOk, setAccessOk] = useState(false);
-      if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
-      return <App />;
-    }
+  return (
+    <div className="h-screen flex items-center justify-center bg-slate-900">
+      <form onSubmit={handleAccessSubmit} className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80">
+        <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
+        <input className="border rounded px-3 py-2" placeholder="Access code"
+               value={codeDraft} onChange={e => setCodeDraft(e.target.value)} />
+        {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
+        <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50"
+                disabled={checking}>
+          {checking ? 'Checking…' : 'Enter'}
+        </button>
+      </form>
+    </div>
+  );
+}
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+// Root: gate → app
+function Root() {
+  const [accessOk, setAccessOk] = useState(false);
+  // Debug to verify the gate is active:
+  useEffect(() => { console.log('accessOk:', accessOk); }, [accessOk]);
+
+  if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
+  return <App />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
   </script>
 </body>
 </html>
