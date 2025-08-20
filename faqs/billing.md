@@ -136,3 +136,163 @@ If the issue persists, update your payment method with a different card to avoid
 
 Avoiding Duplicate Payment Errors
 This error occurs when a payment is retried too quickly after a failed attempt or when the same transaction is processed multiple times within a short time frame. To avoid this, wait a few minutes before attempting the payment again.
+
+Reset Options and Invoice Cancellations
+Not yet followed by anyone
+In your trading journey, you might encounter situations where your evaluation account becomes inactive due to breaking a rule—such as reaching the maximum drawdown threshold. When this happens, an error message stating, “Trades Can Only Be Placed By Administrator,” may appear. If you wish to continue trading within your subscription period, you have the option to reset your account. This article provides detailed information on how to reset your evaluation account, our policies regarding resets, and important considerations to keep in mind.
+
+Resetting Your Evaluation Account
+When to Reset
+If your evaluation account becomes inactive because you’ve broken a rule, you can choose to reset it. Resetting allows you to start fresh with a full balance, full trailing drawdown, and zero days traded. 
+
+How to Reset
+To reset your account:
+
+Close All Positions: Before initiating a reset, ensure that all open positions are closed.
+Purchase a Reset:
+Log In: Access your members’ area here.
+Select Account: Click on Reset next to the account you wish to reset.
+Warning: Make sure you reset the correct account, as this action is irreversible.
+Processing Time: The system typically processes resets within 10 minutes, but processing times may vary.
+
+
+ 
+
+Important Notes on Resetting
+Understanding how resets work is essential for managing your Apex Trader Funding accounts effectively. Below are the key guidelines and considerations to keep in mind when resetting an account:
+
+Renewal Date Unchanged
+Resets do not extend your renewal or expiration date.
+Your renewal date remains exactly 30 days from the last billing date, regardless of resets.
+Resetting a Canceled Evaluation Account
+If your Evaluation Account was canceled but is still within the subscription period, it can be reset manually to restore its balance and parameters.
+Resets do not reactivate canceled subscriptions or change renewal dates.
+Important: If an Evaluation Account is canceled, it must be converted to a Performance Account (PA) within the 30-day rebill period. Once the rebill date passes, the account can no longer be converted to a PA.
+Refund Policy
+No Refunds: Reset fees are non-refundable, even if the reset was made by mistake.
+Resetting Passed Accounts
+DO NOT reset a passed account.
+This action is irreversible, and you will permanently lose any progress made.
+If you reset a passed account, you will need to start over with a fresh balance.
+Impact of Resetting
+A reset will restore:
+Your drawdown.
+Your initial balance.
+Your accumulated trading days.
+However, a reset does not change your renewal date.
+Resetting The Same Account Multiple Times
+If you reset an account (e.g., APEX-12345-12) and it generates a new account number (e.g., APEX-12345-13), then reset it again to APEX-12345-14 without taking any trades on account -13, you will not be eligible for a refund. This is considered a user error.
+To Avoid Issues:
+Always ensure you have traded and failed on the previous account (e.g., -13) before resetting.
+Keep track of which accounts you have traded and failed to avoid resetting an unused account.
+No Penalty for Resetting
+You can reset your accounts as many times as needed without any penalties.
+By following these guidelines, you can effectively manage your resets while avoiding common mistakes. Always track your accounts carefully and ensure you’re adhering to these rules to avoid unnecessary complications.
+
+Play
+
+
+06:31
+07:59
+Mute
+
+Settings
+Enter fullscreen
+
+Play
+
+Our Policy on Resets Upon Monthly Auto-Renewal
+Apex Trader Funding's reset policy is designed to simplify the process for traders and minimize unnecessary fees. If your Evaluation Account fails and you forget to cancel your subscription, a free reset will be applied automatically upon renewal as part of the renewal fee, provided certain conditions are met. This guide explains the process and helps you manage resets effectively.
+
+Conditions for Free Reset Upon Renewal
+Account Status: To qualify for the free reset, the account must be in failed status as of the market close for the Trading Day prior to the renewal date (be mindful of CME Holidays and early market closes, these do not count as trading days unless otherwise specified by the CME here).
+Successful Renewal Fee: The subscription renewal fee must be successfully charged. The free reset applies only when the renewal payment is processed.
+Automatic Process: The reset will happen automatically after the renewal. No action is required on your part.
+Options Before Renewal
+If you don’t want to wait for the automatic reset, you have two alternatives:
+
+Manual Reset: You can manually reset your account before the renewal date by paying the reset fee ($80 for Rithmic accounts / $100 for Tradovate accounts).
+Cancel and Sign Up for a New Account: You can choose to cancel your current account subscription and sign up for a new one. This prevents you from being charged for both a renewal and a reset fee, especially if you wish to take advantage of any available discount promotions.
+Important Considerations
+No Retroactive Resets: If you reset your account manually before the renewal date and then it renews, you will not receive a refund for the reset fee.
+
+Evaluation Accounts Only: This policy applies exclusively to Evaluation Accounts. Performance Accounts (PAs) are not eligible for auto-resets.
+
+Subsequent Failures: If your account fails again after the reset, it will not be reset for free unless it renews while in a failed status.
+
+Multiple Resets: Resets are only free upon renewal when the account is in a failed status. If you fail an active account and reset it, additional resets will require payment.
+
+This policy is designed to assist traders who might forget to cancel their accounts and sign up for new ones with available discount promotions. By automatically resetting failed accounts upon renewal, traders avoid having to pay both a renewal fee and a reset fee.
+
+How to Reset Your Account
+Log In to Your Dashboard
+
+Access your account from the Apex Trader Funding website.
+Select an Action
+
+For a new account: Go to Plan Signup and choose a plan.
+For a reset: Click Reset next to the desired account.
+Confirm Reset
+
+Confirm your reset. This action will:
+Restore your account balance.
+Restart the seven trading days.
+Maintain your billing cycle (does not change renewal date).
+Caution: Ensure you select the correct account. Resets are irreversible.
+
+Refunds and Credits
+Not yet followed by anyone
+Refunds and Credits Policy
+At Apex Trader Funding, we are committed to providing clarity and transparency in all aspects of our services. This policy outlines everything you need to know about refunds and related inquiries. For ease of understanding, the information is presented visually and concisely, ensuring accuracy and alignment with our practices.
+
+General Purchases
+We do not offer refunds, whether in whole or in part, for any purchases made through our website. This applies to initial subscriptions, renewals, resets, and other optional services. 
+
+Renewals: Avoid Unnecessary Charges
+Billing Schedule: Renewals occur automatically every 30 days unless canceled.
+Cancellation Deadline: Cancel before market close on the day prior to your renewal date to stop the next billing cycle.
+Missed Deadline: Failure to cancel will result in an automatic charge, and no refunds will be issued.
+Optional Fees and Add-ons
+The following optional purchases are non-refundable, so double-check their relevance before buying:
+
+Reset Fees: Applies if you fail an Evaluation Account and wish to restart.
+PA Activation Fees: Charged when transitioning from Evaluation to Performance Account.
+Data Fees: Includes Market Depth or extra session logins.
+Ensure these services fit your trading needs to avoid unnecessary expenses.
+Handling Errors
+Technology Issues
+
+Refunds are not issued for:
+
+Platform Errors: Such as delayed order execution.
+Data Errors: Issues with feeds or market depth.
+Stuck Orders: Trades not closing as expected.
+Issues relating to third-party platforms are out of Apex Trader Funding's control. If you encounter these issues, please contact the third-party platform for further guidance.
+What If I Choose the Wrong Plan?
+If you select the wrong plan or service, our policy does not permit refunds. Instead, you may:
+
+Keep the Current Plan: Continue using it until it expires.
+Cancel to Avoid Renewal: Ensure the subscription does not renew.
+Sign Up for the Correct Plan: Purchase the plan you intended to select.
+Steps to Avoid Unwanted Charges
+Thoroughly Review: Visit the FAQ section and descriptions of services before making any purchases.
+Contact The Help Desk: If unsure, contact the Apex Help Desk for clarification before completing a transaction.
+Double-Check Selections: Confirm the plan or service you’re purchasing is accurate during checkout.
+Cancel On Time: Cancel subscriptions you no longer need before the renewal date.
+Refund and Credits Summary Guide
+Action	What to Do	Result
+Cancel Before Renewal	Cancel at least 1 day before the renewal date.	Avoid charges for the next billing cycle.
+Incorrect Plan Purchased	Keep, cancel, or sign up for the correct plan.	No refunds for mistakes.
+Need Optional Services	Ensure optional add-ons fit your needs before purchasing.	Avoid unnecessary fees or services.
+No Refunds Policy: Overview
+We aim to provide clear information to help you manage your Apex Trader Funding account effectively. By understanding this policy and taking proactive steps, you can minimize issues and avoid unnecessary charges. For any questions, refer to our FAQ section or contact our Help Desk. Thank you for your understanding and cooperation!
+
+At our core, we aim to provide transparent and comprehensive information about our services. To avoid any misunderstandings, we encourage you to carefully review our FAQ section and the details of our offerings before making a purchase. Below is a clear outline of our refund policy to ensure you understand our stance on refunds and related inquiries.
+
+Type of Purchase	Refund Eligibility
+Initial Subscriptions	No refunds.
+Renewals	No refunds. Cancel before the renewal date to avoid charges.
+Resets	No refunds, even for mistaken resets.
+Optional Add-ons	No refunds for services like Market Depth or extra session logins.
+Technology Issues	No refunds for platform errors, data errors, or stuck orders.
+Incorrect Purchases	No refunds for wrong plan selection. Carefully review before purchasing.
