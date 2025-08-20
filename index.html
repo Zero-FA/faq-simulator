@@ -1,13 +1,31 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- ===============================
+       DOCUMENT: Apex Trainer App
+       PURPOSE: A single-file demo/training tool that quizzes trainees
+                using your FAQs, grades answers, and shows results.
+       AUDIENCE: Non‑coders and trainers — every section is labeled with
+                 plain‑English explanations.
+       =============================== -->
+
+  <!-- ========== PAGE METADATA (What is this?) ==========
+       Sets the page title, character set, mobile scaling, fonts, and Tailwind CSS.
+       You usually never touch this unless you want to change the title or fonts. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Apex Trader Funding</title>
+
+  <!-- Tailwind (utility CSS framework for quick styling) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter (clean, readable) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- ========== GLOBAL PAGE STYLES (Look & feel) ==========
+       Light shadows, rounded corners, and font setup. Safe to tweak. -->
   <style>
     html, body { height: 100%; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
     .bubble { border-radius: 1rem; padding: .75rem 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.05); border: 1px solid rgba(0,0,0,.08); }
@@ -17,17 +35,37 @@
   </style>
 </head>
 <body class="bg-slate-100">
+  <!-- Where the React app will render -->
   <div id="root" class="min-h-screen"></div>
 
-  <!-- React + Babel -->
+  <!-- ===============================
+       LIBRARIES (What are these?)
+       React & ReactDOM power the UI. Babel lets us write JSX directly
+       in this file without a build step.
+       You do not need to change these links. =============================== -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- ====================================================================
+       APPLICATION CODE (Everything below is the app logic & components)
+       Sections are grouped and clearly labeled. If you're non‑technical,
+       read the header comment for each section to know what it does.
+       ==================================================================== -->
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // ================= CONFIG =================
+    /* ================================================================
+       1) BASIC SETTINGS (Where do things live? how many questions?)
+       ----------------------------------------------------------------
+       - USE_MOCK:     If true, uses fake data instead of your API.
+       - COACH_URL:    Server endpoint that asks a question.
+       - GRADE_URL:    Server endpoint that grades an answer.
+       - CHECK_ACCESS_URL: Endpoint to verify the access code.
+       - CHANNELS:     The FAQ categories used for quizzing.
+       - QUESTIONS_PER_RUN: How many questions per attempt.
+       - RUN_SECONDS:  Timer length for a run (in seconds).
+       Change these as needed — safe for non‑coders. */
     const USE_MOCK = false;
     const COACH_URL = '/api/coach';
     const GRADE_URL = '/api/grader';
@@ -45,7 +83,11 @@
     const QUESTIONS_PER_RUN = 5;
     const RUN_SECONDS = 10 * 60; // 10:00
 
-    // ============== HELPERS ==============
+    /* ================================================================
+       2) HELPERS (Small utilities the app reuses)
+       ----------------------------------------------------------------
+       - fetchFAQMd: reads the Markdown text for a given channel.
+       Non‑coders: think of this as "load the study guide" function. */
     async function fetchFAQMd(channelId){
       const ch = CHANNELS.find(c=>c.id===channelId);
       if(!ch) throw new Error('Unknown channel');
@@ -54,7 +96,10 @@
       return await r.text();
     }
 
-    // ================= UI FRAGMENTS =================
+    /* ================================================================
+       3) UI PIECES — Small building blocks (Avatars, Chat Row)
+       ----------------------------------------------------------------
+       You can restyle these without affecting app logic. */
     function Avatar({variant="bot"}) {
       const color = variant==="bot" ? "bg-indigo-500" : "bg-emerald-500";
       return <div className={`w-9 h-9 ${color} text-white rounded-full grid place-items-center font-semibold`}>{variant==="bot"?"C":"T"}</div>;
@@ -74,7 +119,10 @@
       );
     }
 
-    // ================= SUMMARY MODAL (NEW) =================
+    /* ================================================================
+       4) RESULTS SUMMARY (Pop‑up after all channels are done)
+       ----------------------------------------------------------------
+       Shows overall score per channel. Click "Close" to dismiss. */
     function SummaryModal({ open, scores, onClose }) {
       if (!open) return null;
 
@@ -85,10 +133,10 @@
 
       return (
         <div className="fixed inset-0 z-50">
-          {/* Backdrop */}
+          {/* Backdrop (dark overlay behind the card) */}
           <div className="absolute inset-0 bg-black/40 animate-fadeIn" onClick={onClose} />
 
-          {/* Card */}
+          {/* Summary card */}
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border animate-popIn">
               <div className="p-4 border-b flex items-center justify-between">
@@ -130,7 +178,7 @@
             </div>
           </div>
 
-          {/* Tiny CSS helpers for animations */}
+          {/* Small animations for a polished feel */}
           <style>{`
             @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
             @keyframes popIn { 0% { opacity:0; transform: translateY(8px) scale(.98) } 100% { opacity:1; transform: translateY(0) scale(1) } }
@@ -141,8 +189,16 @@
       );
     }
 
-    // ================= MAIN APP =================
+    /* ================================================================
+       5) MAIN APP (The trainer/trainee experience)
+       ----------------------------------------------------------------
+       Handles: loading FAQs, asking questions, accepting answers,
+       grading, a countdown timer, progress, per‑channel scoring,
+       and locking/unlocking channels.
+       Non‑coders: The labels inside are for clarity; you can adjust
+       numbers/text above without breaking things. */
     function App() {
+      // 5A) STATE (What the app remembers while you use it)
       const [channelId, setChannelId] = useState(CHANNELS[0].id);
       const [faqMd, setFaqMd] = useState('');
       const [messages, setMessages] = useState([]);
@@ -155,43 +211,44 @@
       const [typing, setTyping] = useState(false);
       const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
-      // NEW: store results per channel (persists until refresh)
+      // Scores persist per channel until page refresh
       const [scores, setScores] = useState({});
-      // shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
+      // Example shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
 
-      // sequential gating state
+      // Gating: lock later channels until earlier ones are completed
       const [unlockedIdx, setUnlockedIdx] = useState(0);
       const [completedIds, setCompletedIds] = useState(new Set());
       const [notice, setNotice] = useState('');
 
-      // NEW: overall summary modal
+      // Final overall summary modal
       const [showSummary, setShowSummary] = useState(false);
 
+      // Internal helpers
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
       const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      // load faq on channel switch (do NOT wipe scores)
+      // 5B) LOAD FAQ when channel changes; reset ephemeral run state
       useEffect(()=>{
         (async ()=>{
           try {
             const md = await fetchFAQMd(channelId);
             setFaqMd(md);
-            // reset ephemeral run state
+            // Reset run-specific state (does not erase saved scores)
             if (timerRef.current) clearInterval(timerRef.current);
             setStarted(false); setFinished(false);
             setQCount(0); setSecondsLeft(RUN_SECONDS);
             setHistory([]); setGrading(null);
             setDraft('');
             setMessages([]);
-          } catch(e){
-            console.error(e);
-          }
+          } catch(e){ console.error(e); }
         })();
       }, [channelId]);
 
+      // 5C) Auto-scroll chat to bottom when messages/typing change
       useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
 
+      // 5D) Tiny helpers for toasts and timer
       function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
 
       function startTimer(){
@@ -207,6 +264,7 @@
         },1000);
       }
 
+      // 5E) Start a new run: reset counters, start the clock, ask Q1
       async function startRun(){
         setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
         startTimer();
@@ -214,7 +272,7 @@
         await askNext();
       }
 
-      // ask next question from Coach API
+      // 5F) Ask the next question (from Coach API or mock)
       async function askNext(){
         if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
         setTyping(true);
@@ -228,7 +286,7 @@
           const res = await fetch(COACH_URL, {
             method: 'POST',
             headers: { 'Content-Type':'application/json' },
-            // pass channel name or id; server supports name
+            // Note: server accepts channel name; we send name if available
             body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
           });
           const txt = await res.text();
@@ -245,7 +303,7 @@
         }
       }
 
-      // finish run, save results for this channel, unlock next
+      // 5G) End a run, compute score, save per‑channel, unlock next
       function endRun(passedResults){
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -255,35 +313,23 @@
         const total = results.filter(r=>r.passed).length;
         const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
 
-        // Save per-channel score (persists until refresh)
-        setScores(prev => {
-          const next = {
-            ...prev,
-            [channelId]: { results, total, pct, completedAt: Date.now() }
-          };
-          return next;
-        });
+        setScores(prev => ({
+          ...prev,
+          [channelId]: { results, total, pct, completedAt: Date.now() }
+        }));
 
         setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
 
-        // Mark channel completed & unlock next
         setCompletedIds(prevSet => {
           const nextSet = new Set(prevSet).add(channelId);
           const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
           setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
-
-          // If ALL channels finished, show overall summary modal
-          Promise.resolve().then(()=>{
-            if (nextSet.size === CHANNELS.length) {
-              setShowSummary(true);
-            }
-          });
-
+          Promise.resolve().then(()=>{ if (nextSet.size === CHANNELS.length) setShowSummary(true); });
           return nextSet;
         });
       }
 
-      // submit trainee answer -> grade -> maybe next or end
+      // 5H) Submit an answer → call grader → move to next or finish
       async function submit(){
         if (!draft.trim() || !started || finished) return;
 
@@ -306,61 +352,37 @@
             })
           });
 
-          // ---- SAFE PARSE (handle non-JSON upstream errors) ----
+          // Safe-parse: handle non‑JSON server errors gracefully
           const txt = await res.text();
-          let graded;
-          try {
-            graded = JSON.parse(txt);
-          } catch {
-            throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
-          }
+          let graded; try { graded = JSON.parse(txt); } catch { throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`); }
           if (!res.ok) {
             const msg = graded?.error || `HTTP ${res.status}`;
-            const detail = typeof graded?.detail === 'string'
-              ? graded.detail
-              : JSON.stringify(graded?.detail || '');
+            const detail = typeof graded?.detail === 'string' ? graded.detail : JSON.stringify(graded?.detail || '');
             throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
           }
-          // ------------------------------------------------------
 
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
-
+          const nextCount = qCount + 1; setQCount(nextCount);
           setGrading(g=>{
             const prev = g?.results || [];
             const cur = { qText:lastQuestion, ans:userText, ...graded };
             const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) {
-              endRun(nextResults);
-            } else {
-              askNext();
-            }
+            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
             return { results: nextResults };
           });
 
         } catch (e) {
-          const nextCount = qCount + 1;
-          setQCount(nextCount);
+          const nextCount = qCount + 1; setQCount(nextCount);
           setGrading(g=>{
             const prev = g?.results || [];
-            const cur = {
-              qText: lastQuestion,
-              ans: userText,
-              passed: false,
-              why: `Grader error: ${e.message}`,
-              matched: [],
-              missing: [],
-              flags: []
-            };
+            const cur = { qText: lastQuestion, ans: userText, passed: false, why: `Grader error: ${e.message}`, matched: [], missing: [], flags: [] };
             const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults);
-            else askNext();
+            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
             return { results: nextResults };
           });
         }
       }
 
-      // channel click with locking
+      // 5I) Channel switching with lock enforcement
       function trySwitchChannel(targetId, targetIdx){
         if (started && !finished) { toast("Finish this run before switching channels."); return; }
         if (targetIdx > unlockedIdx) { toast("Locked. Complete the previous channel first."); return; }
@@ -369,9 +391,10 @@
 
       const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
+      // 5J) What the user sees on the screen
       return (
         <div className="grid grid-cols-12 min-h-screen">
-          {/* Sidebar */}
+          {/* LEFT SIDEBAR: Channel list with lock/done indicators */}
           <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
             <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
             <div className="space-y-1">
@@ -394,8 +417,9 @@
             <div className="mt-2 h-5 text-xs text-amber-300">{notice}</div>
           </aside>
 
-          {/* Main */}
+          {/* MAIN AREA: Header, Chat, Input, and Per‑channel Results */}
           <main className="col-span-12 md:col-span-10 p-4 md:p-6 grid gap-3 content-start">
+            {/* Header: shows current channel and Start button */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700">
                 <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
@@ -420,7 +444,7 @@
               </div>
             </div>
 
-            {/* Chat card */}
+            {/* Chat card: instructions, messages, typing indicator, input */}
             <div className="border rounded-xl overflow-hidden bg-white">
               <div className="px-4 py-3 border-b text-sm text-slate-500">
                 {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
@@ -446,7 +470,7 @@
               </div>
             </div>
 
-            {/* Results panel (from saved scores) */}
+            {/* Results panel: appears after finishing a channel */}
             {scores[channelId] && (
               <div className="border rounded-xl bg-white">
                 <div className="px-4 py-3 border-b flex items-center justify-between">
@@ -483,14 +507,18 @@
               </div>
             )}
 
-            {/* OVERALL SUMMARY MODAL (NEW) */}
+            {/* Overall summary modal for all channels */}
             <SummaryModal open={showSummary} scores={scores} onClose={() => setShowSummary(false)} />
           </main>
         </div>
       );
     }
 
-    // ================= ACCESS GATE =================
+    /* ================================================================
+       6) ACCESS GATE (Simple lock screen before entering the app)
+       ----------------------------------------------------------------
+       Shows a code input. On success, it lets the user into the app.
+       Non‑coders: To remove the gate, always return <App /> in Root(). */
     function AccessGate({ onAccess }) {
       const [codeDraft, setCodeDraft] = useState('');
       const [checking, setChecking] = useState(false);
@@ -509,7 +537,7 @@
           });
           const data = await r.json().catch(() => ({}));
           if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
-          onAccess(); // no persistence: asks again on refresh
+          onAccess(); // Note: no persistence; will ask again on refresh
           setCodeDraft('');
         } catch (err) {
           setAccessErr(err.message || 'Invalid code');
@@ -532,13 +560,20 @@
       );
     }
 
-    // Root: gate → app
+    /* ================================================================
+       7) ROOT (Decides what to show first)
+       ----------------------------------------------------------------
+       Shows AccessGate first; once accepted, shows the App. */
     function Root() {
       const [accessOk, setAccessOk] = useState(false);
       if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
       return <App />;
     }
 
+    /* ================================================================
+       8) MOUNT THE APP (Put it on the page)
+       ----------------------------------------------------------------
+       Connects the React app to the #root element in the HTML above. */
     ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
   </script>
 </body>
