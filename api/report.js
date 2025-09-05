@@ -2,7 +2,7 @@
 export const config = { runtime: 'nodejs' };
 const fetch = global.fetch;
 
-// split a long string into pieces ≤ n chars
+// Split a long string into pieces ≤ n chars
 function chunk(text, n) {
   const out = [];
   for (let i = 0; i < text.length; i += n) out.push(text.slice(i, i + n));
@@ -16,37 +16,42 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Optional tiny health check
+  // Optional health check
   if (req.method === 'GET') {
     const haveAny =
       !!process.env.REPORT_WEBHOOKS ||
       !!process.env.REPORT_WEBHOOKS_CHANNEL ||
       !!process.env.REPORT_WEBHOOKS_FINAL;
-    return res.status(200).json({ ok: true, expects: 'POST', haveWebhooks: haveAny });
+    const tzEnv = process.env.REPORT_TZ || null;
+    return res.status(200).json({ ok: true, expects: 'POST', haveWebhooks: haveAny, tzEnv });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // parse body safely (supports string or object)
+    // Parse body safely (supports string or object)
     const rawTxt = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
     let body;
-    try { body = typeof req.body === 'string' ? JSON.parse(rawTxt || '{}') : (req.body || {}); }
-    catch { return res.status(400).json({ error: 'Bad JSON' }); }
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(rawTxt || '{}') : (req.body || {});
+    } catch {
+      return res.status(400).json({ error: 'Bad JSON' });
+    }
 
     const {
-      kind = 'channel',                // 'channel' | 'final'
-      trainee = {},                    // { fullName, email? }
+      kind = 'channel',           // 'channel' | 'final'
+      trainee = {},               // { fullName, email? }
       channelId, channelName,
       startedAt, endedAt,
-      summary,                         // channel: { total, outOf, pct }
-      results,                         // channel: [{ qText, ans, passed, why, matched, missing }]
-      overall,                         // final: { correct, total, pct }
-      scoresByChannel,                 // final: { [id]: { total, pct, results: [...] } }
-      qaByChannel                      // final: optional, grouped Q/A details
+      summary,                    // channel: { total, outOf, pct }
+      results,                    // channel: [{ qText, ans, passed, why, matched, missing }]
+      overall,                    // final: { correct, total, pct }
+      scoresByChannel,            // final: { [id]: { total, pct, results: [...] } }
+      qaByChannel,                // final: optional, grouped Q/A details
+      timeZone                    // optional: override timezone per-request
     } = body;
 
-    // choose webhook list by kind (with fallback)
+    // Choose webhook list by kind (with fallback)
     const listEnv =
       kind === 'final'
         ? (process.env.REPORT_WEBHOOKS_FINAL || process.env.REPORT_WEBHOOKS)
@@ -64,10 +69,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // build human-readable header
-    const started = startedAt ? new Date(startedAt).toLocaleString() : '—';
-    const ended   = endedAt   ? new Date(endedAt).toLocaleString()   : '—';
+    // Timezone handling: payload timeZone → REPORT_TZ → UTC
+    const tz = timeZone || process.env.REPORT_TZ || 'UTC';
+    const started = startedAt
+      ? new Date(startedAt).toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' })
+      : '—';
+    const ended = endedAt
+      ? new Date(endedAt).toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' })
+      : '—';
 
+    // Build human-readable header
     let header;
     if (kind === 'channel') {
       header =
@@ -85,7 +96,7 @@ Overall: ${overall?.correct ?? 0}/${overall?.total ?? 0} (${overall?.pct ?? 0}%)
 Completed: ${ended}`;
     }
 
-    // build details text
+    // Build details text
     let details = '';
     if (kind === 'channel' && Array.isArray(results)) {
       details = results.map((r, i) => ([
@@ -98,11 +109,12 @@ Completed: ${ended}`;
       ].filter(Boolean).join('\n'))).join('\n\n');
     } else if (kind === 'final') {
       if (scoresByChannel) {
-        details += Object.entries(scoresByChannel).map(([id, s]) => {
+        const perCh = Object.entries(scoresByChannel).map(([id, s]) => {
           if (!s) return `• ${id}: not completed`;
           const outOf = (s.results || []).length || '—';
           return `• ${id}: ${s.total}/${outOf} (${s.pct}%)`;
         }).join('\n');
+        details += perCh;
       }
       if (qaByChannel && typeof qaByChannel === 'object') {
         const blocks = [];
@@ -125,7 +137,7 @@ Completed: ${ended}`;
 
     const text = details ? `${header}\n\n${details}` : header;
 
-    // send to each destination
+    // Send to each destination
     const deliveries = [];
     for (const url of list) {
       const isSlack   = /hooks\.slack\.com/.test(url);
@@ -133,7 +145,7 @@ Completed: ${ended}`;
 
       try {
         if (isSlack) {
-          // Slack text message (chunk at ~2800)
+          // Slack text (chunk ~2800)
           for (const part of chunk(text, 2800)) {
             const r = await fetch(url, {
               method: 'POST',
@@ -143,7 +155,7 @@ Completed: ${ended}`;
             deliveries.push({ url, ok: r.ok, status: r.status });
           }
         } else if (isDiscord) {
-          // Discord content message (chunk at ~1900)
+          // Discord content (chunk ~1900)
           for (const part of chunk(text, 1900)) {
             const r = await fetch(url, {
               method: 'POST',
@@ -166,7 +178,7 @@ Completed: ${ended}`;
       }
     }
 
-    return res.status(200).json({ ok: true, delivered: list.length, deliveries });
+    return res.status(200).json({ ok: true, delivered: list.length, deliveries, usedTimeZone: tz });
   } catch (err) {
     return res.status(500).json({ error: 'Report relay failed', detail: String(err) });
   }
