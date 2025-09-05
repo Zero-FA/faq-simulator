@@ -372,12 +372,14 @@ function App({ trainee }) {
         const finalQuestions = entries.reduce((s,v)=> s + ((v?.results?.length) || 0), 0);
         const finalPct = finalQuestions ? Math.round((finalCorrect/finalQuestions)*100) : 0;
 
-        sendReport('final', {
-          overall: { correct: finalCorrect, total: finalQuestions, pct: finalPct },
-          scoresByChannel: Object.fromEntries(
-            CHANNELS.map(ch => [ch.id, snapshot[ch.id] || null])
-          )
-        });
+setTimeout(() => {
+  sendReport('final', {
+    overall: { correct: finalCorrect, total: finalQuestions, pct: finalPct },
+    scoresByChannel: Object.fromEntries(
+      CHANNELS.map(ch => [ch.id, snapshot[ch.id] || null])
+    )
+  });
+}, 3_000); // wait 3 seconds
 
         Promise.resolve().then(()=> setShowSummary(true));
       }
