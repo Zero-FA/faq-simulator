@@ -231,6 +231,8 @@ function App({ trainee }) {
   // Internal helpers
   const scrollRef = useRef(null);
   const timerRef = useRef(null);
+const finalSentRef = React.useRef(false);       // guard against duplicate finals
+const finalTimeoutRef = React.useRef(null);     // so we can cancel on unmount
   const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   // 5B) LOAD FAQ when channel changes; reset ephemeral run state
@@ -250,6 +252,13 @@ function App({ trainee }) {
       } catch(e){ console.error(e); }
     })();
   }, [channelId]);
+
+// small cleanup effect
+React.useEffect(() => {
+  return () => {
+    if (finalTimeoutRef.current) clearTimeout(finalTimeoutRef.current);
+  };
+}, []);
 
   // 5C) Auto-scroll chat to bottom when messages/typing change
   useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
@@ -366,23 +375,28 @@ function App({ trainee }) {
       setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
 
       // If all channels are done, send a final consolidated report
-      if (nextSet.size === CHANNELS.length) {
-        const entries = Object.values(snapshot);
-        const finalCorrect = entries.reduce((s,v)=> s + (v?.total || 0), 0);
-        const finalQuestions = entries.reduce((s,v)=> s + ((v?.results?.length) || 0), 0);
-        const finalPct = finalQuestions ? Math.round((finalCorrect/finalQuestions)*100) : 0;
+// If all channels are done, send a final consolidated report (delayed & idempotent)
+if (nextSet.size === CHANNELS.length) {
+  const entries = Object.values(snapshot);
+  const finalCorrect   = entries.reduce((s,v)=> s + (v?.total || 0), 0);
+  const finalQuestions = entries.reduce((s,v)=> s + ((v?.results?.length) || 0), 0);
+  const finalPct       = finalQuestions ? Math.round((finalCorrect/finalQuestions)*100) : 0;
 
-setTimeout(() => {
-  sendReport('final', {
-    overall: { correct: finalCorrect, total: finalQuestions, pct: finalPct },
-    scoresByChannel: Object.fromEntries(
-      CHANNELS.map(ch => [ch.id, snapshot[ch.id] || null])
-    )
-  });
-}, 3_000); // wait 3 seconds
+  // prevent duplicate finals if endRun() gets hit twice
+  if (!finalSentRef.current) {
+    finalSentRef.current = true;
+    finalTimeoutRef.current = setTimeout(() => {
+      sendReport('final', {
+        overall: { correct: finalCorrect, total: finalQuestions, pct: finalPct },
+        scoresByChannel: Object.fromEntries(
+          CHANNELS.map(ch => [ch.id, snapshot[ch.id] || null])
+        )
+      });
+    }, 10_000); // 10 seconds
+  }
 
-        Promise.resolve().then(()=> setShowSummary(true));
-      }
+  Promise.resolve().then(()=> setShowSummary(true));
+}
       return nextSet;
     });
   }
