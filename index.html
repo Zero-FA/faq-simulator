@@ -54,6 +54,8 @@
        ==================================================================== -->
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
+    const REPORT_URL = '/api/report'; // new endpoint below
+
 
     /* ================================================================
        1) BASIC SETTINGS (Where do things live? how many questions?)
@@ -197,378 +199,434 @@
        and locking/unlocking channels.
        Non‑coders: The labels inside are for clarity; you can adjust
        numbers/text above without breaking things. */
-    function App() {
-      // 5A) STATE (What the app remembers while you use it)
-      const [channelId, setChannelId] = useState(CHANNELS[0].id);
-      const [faqMd, setFaqMd] = useState('');
-      const [messages, setMessages] = useState([]);
-      const [history, setHistory] = useState([]);
-      const [draft, setDraft] = useState('');
-      const [started, setStarted] = useState(false);
-      const [finished, setFinished] = useState(false);
-      const [qCount, setQCount] = useState(0);
-      const [grading, setGrading] = useState(null);
-      const [typing, setTyping] = useState(false);
-      const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
+function App({ trainee }) {
+  // 5A) STATE (What the app remembers while you use it)
+  const [channelId, setChannelId] = useState(CHANNELS[0].id);
+  const [faqMd, setFaqMd] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [started, setStarted] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [qCount, setQCount] = useState(0);
+  const [grading, setGrading] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(RUN_SECONDS);
 
-      // Scores persist per channel until page refresh
-      const [scores, setScores] = useState({});
-      // Example shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
+  // NEW: track when a run starts (for reporting)
+  const [runStartedAt, setRunStartedAt] = useState(null);
 
-      // Gating: lock later channels until earlier ones are completed
-      const [unlockedIdx, setUnlockedIdx] = useState(0);
-      const [completedIds, setCompletedIds] = useState(new Set());
-      const [notice, setNotice] = useState('');
+  // Scores persist per channel until page refresh
+  const [scores, setScores] = useState({});
+  // Example shape: { [channelId]: { results:[], total:number, pct:number, completedAt:number } }
 
-      // Final overall summary modal
-      const [showSummary, setShowSummary] = useState(false);
+  // Gating: lock later channels until earlier ones are completed
+  const [unlockedIdx, setUnlockedIdx] = useState(0);
+  const [completedIds, setCompletedIds] = useState(new Set());
+  const [notice, setNotice] = useState('');
 
-      // Internal helpers
-      const scrollRef = useRef(null);
-      const timerRef = useRef(null);
-      const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  // Final overall summary modal
+  const [showSummary, setShowSummary] = useState(false);
 
-      // 5B) LOAD FAQ when channel changes; reset ephemeral run state
-      useEffect(()=>{
-        (async ()=>{
-          try {
-            const md = await fetchFAQMd(channelId);
-            setFaqMd(md);
-            // Reset run-specific state (does not erase saved scores)
-            if (timerRef.current) clearInterval(timerRef.current);
-            setStarted(false); setFinished(false);
-            setQCount(0); setSecondsLeft(RUN_SECONDS);
-            setHistory([]); setGrading(null);
-            setDraft('');
-            setMessages([]);
-          } catch(e){ console.error(e); }
-        })();
-      }, [channelId]);
+  // Internal helpers
+  const scrollRef = useRef(null);
+  const timerRef = useRef(null);
+  const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-      // 5C) Auto-scroll chat to bottom when messages/typing change
-      useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
-
-      // 5D) Tiny helpers for toasts and timer
-      function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
-
-      function startTimer(){
-        timerRef.current = setInterval(()=>{
-          setSecondsLeft(prev=>{
-            if(prev<=1){
-              clearInterval(timerRef.current);
-              endRun();
-              return 0;
-            }
-            return prev-1;
-          })
-        },1000);
-      }
-
-      // 5E) Start a new run: reset counters, start the clock, ask Q1
-      async function startRun(){
-        setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
-        startTimer();
-        setMessages(m=>[...m, {from:'bot', text:"I’ll ask you 5 quick questions. Answer using the FAQs. Ready?", time: now()}]);
-        await askNext();
-      }
-
-      // 5F) Ask the next question (from Coach API or mock)
-      async function askNext(){
-        if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
-        setTyping(true);
-        try {
-          if (USE_MOCK) {
-            const text = "Sample question?";
-            setMessages(m=>[...m, {from:'bot', text, time: now()}]);
-            setHistory(h=>[...h, {role:'assistant', content:text}]);
-            return;
-          }
-          const res = await fetch(COACH_URL, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            // Note: server accepts channel name; we send name if available
-            body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
-          });
-          const txt = await res.text();
-          let data;
-          try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
-          if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
-          const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
-          setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
-          setHistory(h=>[...h, {role:'assistant', content:qText}]);
-        } catch (e) {
-          setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
-        } finally {
-          setTyping(false);
-        }
-      }
-
-      // 5G) End a run, compute score, save per‑channel, unlock next
-      function endRun(passedResults){
-        if (finished) return;
+  // 5B) LOAD FAQ when channel changes; reset ephemeral run state
+  useEffect(()=>{
+    (async ()=>{
+      try {
+        const md = await fetchFAQMd(channelId);
+        setFaqMd(md);
+        // Reset run-specific state (does not erase saved scores)
         if (timerRef.current) clearInterval(timerRef.current);
-        setFinished(true);
-
-        const results = passedResults ?? (grading?.results || []);
-        const total = results.filter(r=>r.passed).length;
-        const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
-
-        setScores(prev => ({
-          ...prev,
-          [channelId]: { results, total, pct, completedAt: Date.now() }
-        }));
-
-        setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
-
-        setCompletedIds(prevSet => {
-          const nextSet = new Set(prevSet).add(channelId);
-          const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
-          setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
-          Promise.resolve().then(()=>{ if (nextSet.size === CHANNELS.length) setShowSummary(true); });
-          return nextSet;
-        });
-      }
-
-      // 5H) Submit an answer → call grader → move to next or finish
-      async function submit(){
-        if (!draft.trim() || !started || finished) return;
-
-        const userText = draft.trim();
+        setStarted(false); setFinished(false);
+        setQCount(0); setSecondsLeft(RUN_SECONDS);
+        setHistory([]); setGrading(null);
         setDraft('');
-        setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
-        setHistory(h=>[...h, {role:'user', content:userText}]);
+        setMessages([]);
+        setRunStartedAt(null);
+      } catch(e){ console.error(e); }
+    })();
+  }, [channelId]);
 
-        const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+  // 5C) Auto-scroll chat to bottom when messages/typing change
+  useEffect(()=>{ scrollRef.current?.scrollTo({ top: 999999, behavior: 'smooth' }); }, [messages, typing]);
 
-        try {
-          const res = await fetch(GRADE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify({
-              channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
-              question: lastQuestion,
-              answer: userText,
-              faqMd
-            })
-          });
+  // 5D) Tiny helpers for toasts and timer
+  function toast(msg){ setNotice(msg); setTimeout(()=>setNotice(''), 1800); }
 
-          // Safe-parse: handle non‑JSON server errors gracefully
-          const txt = await res.text();
-          let graded; try { graded = JSON.parse(txt); } catch { throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`); }
-          if (!res.ok) {
-            const msg = graded?.error || `HTTP ${res.status}`;
-            const detail = typeof graded?.detail === 'string' ? graded.detail : JSON.stringify(graded?.detail || '');
-            throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
-          }
-
-          const nextCount = qCount + 1; setQCount(nextCount);
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = { qText:lastQuestion, ans:userText, ...graded };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
-            return { results: nextResults };
-          });
-
-        } catch (e) {
-          const nextCount = qCount + 1; setQCount(nextCount);
-          setGrading(g=>{
-            const prev = g?.results || [];
-            const cur = { qText: lastQuestion, ans: userText, passed: false, why: `Grader error: ${e.message}`, matched: [], missing: [], flags: [] };
-            const nextResults = [...prev, cur];
-            if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
-            return { results: nextResults };
-          });
+  function startTimer(){
+    timerRef.current = setInterval(()=>{
+      setSecondsLeft(prev=>{
+        if(prev<=1){
+          clearInterval(timerRef.current);
+          endRun();
+          return 0;
         }
-      }
+        return prev-1;
+      })
+    },1000);
+  }
 
-      // 5I) Channel switching with lock enforcement
-      function trySwitchChannel(targetId, targetIdx){
-        if (started && !finished) { toast("Finish this run before switching channels."); return; }
-        if (targetIdx > unlockedIdx) { toast("Locked. Complete the previous channel first."); return; }
-        setChannelId(targetId);
-      }
-
-      const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-
-      // 5J) What the user sees on the screen
-      return (
-        <div className="grid grid-cols-12 min-h-screen">
-          {/* LEFT SIDEBAR: Channel list with lock/done indicators */}
-          <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
-            <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
-            <div className="space-y-1">
-              {CHANNELS.map((ch, idx)=>{
-                const isActive = channelId===ch.id;
-                const locked = idx > unlockedIdx;
-                return (
-                  <div key={ch.id}
-                       className={`ch-item ${isActive?'active hover:bg-slate-800':'hover:bg-slate-800/60'} ${locked?'opacity-40 cursor-not-allowed':''}`}
-                       onClick={()=>trySwitchChannel(ch.id, idx)}
-                       title={locked ? 'Locked until you complete the previous channel.' : ''}>
-                    <span className={`dot ${ch.dot}`}></span>
-                    <span className="truncate">{ch.name}</span>
-                    {completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-emerald-600/20 text-emerald-300">done</span>}
-                    {locked && !completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-slate-700 text-slate-300">locked</span>}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 h-5 text-xs text-amber-300">{notice}</div>
-          </aside>
-
-          {/* MAIN AREA: Header, Chat, Input, and Per‑channel Results */}
-          <main className="col-span-12 md:col-span-10 p-4 md:p-6 grid gap-3 content-start">
-            {/* Header: shows current channel and Start button */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-700">
-                <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
-                <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
-                {!started && (
-                  <button
-                    className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-                    onClick={startRun}
-                    disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
-                    title={
-                      scores[channelId]
-                        ? 'This channel is completed. Switch channels or refresh to reset all.'
-                        : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
-                    }
-                  >
-                    Start
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Chat card: instructions, messages, typing indicator, input */}
-            <div className="border rounded-xl overflow-hidden bg-white">
-              <div className="px-4 py-3 border-b text-sm text-slate-500">
-                {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
-              </div>
-              <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
-                {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
-                {typing && <div className="text-xs text-slate-500">Coach is typing…</div>}
-              </div>
-              <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
-                <div className="text-xs text-slate-500">
-                  {started && !finished ? `${qCount}/${QUESTIONS_PER_RUN} answered` : ''}
-                </div>
-                <div className="flex gap-2 items-center w-2/3">
-                  <input className="border rounded px-3 py-1.5 w-full"
-                         placeholder={started && !finished ? "Type your reply…" : "Start the run to reply…"}
-                         value={draft}
-                         onChange={e=>setDraft(e.target.value)}
-                         onKeyDown={e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submit(); } }}
-                         disabled={!started || finished}/>
-                  <button className="px-3 py-1.5 rounded bg-emerald-600 text-white disabled:opacity-50"
-                          disabled={!started || finished || !draft.trim()} onClick={submit}>Send</button>
-                </div>
-              </div>
-            </div>
-
-            {/* Results panel: appears after finishing a channel */}
-            {scores[channelId] && (
-              <div className="border rounded-xl bg-white">
-                <div className="px-4 py-3 border-b flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-slate-500">Results</div>
-                    <div className="text-lg font-semibold">
-                      {scores[channelId].total}/{QUESTIONS_PER_RUN} correct ({scores[channelId].pct}%)
-                    </div>
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    Completed {new Date(scores[channelId].completedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                  </div>
-                </div>
-                <div className="p-4 space-y-3">
-                  {scores[channelId].results.map((r,idx)=>(
-                    <div key={idx} className="rounded-xl border p-3 bg-slate-50">
-                      <div className="text-xs text-slate-500 mb-1">Question: {r.qText}</div>
-                      <div className="text-sm font-medium">
-                        Q{idx+1} • {r.passed ? <span className="text-emerald-600">Correct</span> : <span className="text-rose-600">Needs Work</span>}
-                      </div>
-                      <div className="mt-2 text-sm">
-                        <div className="text-slate-500 mb-1">Your reply:</div>
-                        <div className="bg-white rounded-lg border p-3 text-slate-700">{r.ans || r.answer}</div>
-                      </div>
-                      <div className="mt-2 text-xs text-slate-600 space-y-1">
-                        {r.matched?.length>0 && <div>Matched: {r.matched.join(', ')}</div>}
-                        {r.missing?.length>0 && <div>Missing: {r.missing.join(', ')}</div>}
-                        {r.flags?.length>0 && <div className="text-rose-600">Flags: {r.flags.join(', ')}</div>}
-                        {r.why && <div className="italic text-slate-700">Why: {r.why}</div>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Overall summary modal for all channels */}
-            <SummaryModal open={showSummary} scores={scores} onClose={() => setShowSummary(false)} />
-          </main>
-        </div>
-      );
+  // NEW: small helper to send reports out
+  async function sendReport(kind, payload) {
+    try {
+      await fetch(REPORT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          kind,                                // 'channel' | 'final'
+          trainee,                             // { fullName, email? }
+          channelId,
+          channelName: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+          startedAt: runStartedAt,
+          endedAt: Date.now(),
+          ...payload
+        })
+      });
+    } catch (e) {
+      console.warn('Report send failed:', e.message);
     }
+  }
+
+  // 5E) Start a new run: reset counters, start the clock, ask Q1
+  async function startRun(){
+    setRunStartedAt(Date.now());                    // NEW
+    setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
+    startTimer();
+    setMessages(m=>[...m, {from:'bot', text:"I’ll ask you 5 quick questions. Answer using the FAQs. Ready?", time: now()}]);
+    await askNext();
+  }
+
+  // 5F) Ask the next question (from Coach API or mock)
+  async function askNext(){
+    if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
+    setTyping(true);
+    try {
+      if (USE_MOCK) {
+        const text = "Sample question?";
+        setMessages(m=>[...m, {from:'bot', text, time: now()}]);
+        setHistory(h=>[...h, {role:'assistant', content:text}]);
+        return;
+      }
+      const res = await fetch(COACH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        // Note: server accepts channel name; we send name if available
+        body: JSON.stringify({ channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId, history, faqMd })
+      });
+      const txt = await res.text();
+      let data;
+      try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
+      if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
+      const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
+      setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
+      setHistory(h=>[...h, {role:'assistant', content:qText}]);
+    } catch (e) {
+      setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
+    } finally {
+      setTyping(false);
+    }
+  }
+
+  // 5G) End a run, compute score, save per-channel, unlock next
+  function endRun(passedResults){
+    if (finished) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setFinished(true);
+
+    const results = passedResults ?? (grading?.results || []);
+    const total = results.filter(r=>r.passed).length;
+    const pct = Math.round(((total||0)/QUESTIONS_PER_RUN)*100);
+
+    // Build a snapshot that includes this channel’s results (for final summary calc)
+    const snapshot = {
+      ...scores,
+      [channelId]: { results, total, pct, completedAt: Date.now() }
+    };
+
+    // Send per-channel report now
+    sendReport('channel', {
+      summary: { total, outOf: QUESTIONS_PER_RUN, pct },
+      results // array: { qText, ans, passed, why, matched, missing }
+    });
+
+    setScores(prev => ({
+      ...prev,
+      [channelId]: { results, total, pct, completedAt: Date.now() }
+    }));
+
+    setMessages(m=>[...m, {from:'bot', text:`Test complete. You scored ${total||0}/${QUESTIONS_PER_RUN} (${pct}%).`, time: now()}]);
+
+    setCompletedIds(prevSet => {
+      const nextSet = new Set(prevSet).add(channelId);
+      const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
+      setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
+
+      // If all channels are done, send a final consolidated report
+      if (nextSet.size === CHANNELS.length) {
+        const entries = Object.values(snapshot);
+        const finalCorrect = entries.reduce((s,v)=> s + (v?.total || 0), 0);
+        const finalQuestions = entries.reduce((s,v)=> s + ((v?.results?.length) || 0), 0);
+        const finalPct = finalQuestions ? Math.round((finalCorrect/finalQuestions)*100) : 0;
+
+        sendReport('final', {
+          overall: { correct: finalCorrect, total: finalQuestions, pct: finalPct },
+          scoresByChannel: Object.fromEntries(
+            CHANNELS.map(ch => [ch.id, snapshot[ch.id] || null])
+          )
+        });
+
+        Promise.resolve().then(()=> setShowSummary(true));
+      }
+      return nextSet;
+    });
+  }
+
+  // 5H) Submit an answer → call grader → move to next or finish
+  async function submit(){
+    if (!draft.trim() || !started || finished) return;
+
+    const userText = draft.trim();
+    setDraft('');
+    setMessages(m=>[...m, {from:'user', text:userText, time: now()}]);
+    setHistory(h=>[...h, {role:'user', content:userText}]);
+
+    const lastQuestion = [...messages].reverse().find(m=>m.from==='bot')?.text || 'Coach question';
+
+    try {
+      const res = await fetch(GRADE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+          question: lastQuestion,
+          answer: userText,
+          faqMd
+        })
+      });
+
+      // Safe-parse: handle non-JSON server errors gracefully
+      const txt = await res.text();
+      let graded; try { graded = JSON.parse(txt); } catch { throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`); }
+      if (!res.ok) {
+        const msg = graded?.error || `HTTP ${res.status}`;
+        const detail = typeof graded?.detail === 'string' ? graded.detail : JSON.stringify(graded?.detail || '');
+        throw new Error(`${msg}: ${String(detail).slice(0,200)}`);
+      }
+
+      const nextCount = qCount + 1; setQCount(nextCount);
+      setGrading(g=>{
+        const prev = g?.results || [];
+        const cur = { qText:lastQuestion, ans:userText, ...graded };
+        const nextResults = [...prev, cur];
+        if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
+        return { results: nextResults };
+      });
+
+    } catch (e) {
+      const nextCount = qCount + 1; setQCount(nextCount);
+      setGrading(g=>{
+        const prev = g?.results || [];
+        const cur = { qText: lastQuestion, ans: userText, passed: false, why: `Grader error: ${e.message}`, matched: [], missing: [], flags: [] };
+        const nextResults = [...prev, cur];
+        if (nextCount >= QUESTIONS_PER_RUN) endRun(nextResults); else askNext();
+        return { results: nextResults };
+      });
+    }
+  }
+
+  // 5I) Channel switching with lock enforcement
+  function trySwitchChannel(targetId, targetIdx){
+    if (started && !finished) { toast("Finish this run before switching channels."); return; }
+    if (targetIdx > unlockedIdx) { toast("Locked. Complete the previous channel first."); return; }
+    setChannelId(targetId);
+  }
+
+  const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  // 5J) What the user sees on the screen (unchanged)
+  return (
+    <div className="grid grid-cols-12 min-h-screen">
+      {/* LEFT SIDEBAR */}
+      <aside className="col-span-2 hidden md:flex flex-col bg-slate-900 text-slate-200 p-3 gap-3">
+        <div className="text-xs uppercase tracking-widest text-slate-400">Channels</div>
+        <div className="space-y-1">
+          {CHANNELS.map((ch, idx)=>{
+            const isActive = channelId===ch.id;
+            const locked = idx > unlockedIdx;
+            return (
+              <div key={ch.id}
+                   className={`ch-item ${isActive?'active hover:bg-slate-800':'hover:bg-slate-800/60'} ${locked?'opacity-40 cursor-not-allowed':''}`}
+                   onClick={()=>trySwitchChannel(ch.id, idx)}
+                   title={locked ? 'Locked until you complete the previous channel.' : ''}>
+                <span className={`dot ${ch.dot}`}></span>
+                <span className="truncate">{ch.name}</span>
+                {completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-emerald-600/20 text-emerald-300">done</span>}
+                {locked && !completedIds.has(ch.id) && <span className="ml-auto text-[10px] px-1 py-0.5 rounded bg-slate-700 text-slate-300">locked</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 h-5 text-xs text-amber-300">{notice}</div>
+      </aside>
+
+      {/* MAIN AREA */}
+      <main className="col-span-12 md:col-span-10 p-4 md:p-6 grid gap-3 content-start">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-700">
+            <h1 className="text-xl font-semibold">Apex Trader Funding</h1>
+            <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
+            {!started && (
+              <button
+                className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                onClick={startRun}
+                disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+                title={
+                  scores[channelId]
+                    ? 'This channel is completed. Switch channels or refresh to reset all.'
+                    : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
+                }
+              >
+                Start
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Chat card */}
+        <div className="border rounded-xl overflow-hidden bg-white">
+          <div className="px-4 py-3 border-b text-sm text-slate-500">
+            {started ? "Answer 5 questions before the timer runs out." : "Press Start to begin."}
+          </div>
+          <div className="bg-slate-50 p-3 h-[52vh] overflow-y-auto flex flex-col gap-4" ref={scrollRef}>
+            {messages.map((m,i)=><Row key={i} from={m.from} text={m.text} time={m.time} />)}
+            {typing && <div className="text-xs text-slate-500">Coach is typing…</div>}
+          </div>
+          <div className="px-4 py-3 border-t bg-white flex items-center justify-between">
+            <div className="text-xs text-slate-500">
+              {started && !finished ? `${qCount}/${QUESTIONS_PER_RUN} answered` : ''}
+            </div>
+            <div className="flex gap-2 items-center w-2/3">
+              <input className="border rounded px-3 py-1.5 w-full"
+                     placeholder={started && !finished ? "Type your reply…" : "Start the run to reply…"}
+                     value={draft}
+                     onChange={e=>setDraft(e.target.value)}
+                     onKeyDown={e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submit(); } }}
+                     disabled={!started || finished}/>
+              <button className="px-3 py-1.5 rounded bg-emerald-600 text-white disabled:opacity-50"
+                      disabled={!started || finished || !draft.trim()} onClick={submit}>Send</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Results panel */}
+        {scores[channelId] && (
+          <div className="border rounded-xl bg-white">
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Results</div>
+                <div className="text-lg font-semibold">
+                  {scores[channelId].total}/{QUESTIONS_PER_RUN} correct ({scores[channelId].pct}%)
+                </div>
+              </div>
+              <div className="text-xs text-slate-500">
+                Completed {new Date(scores[channelId].completedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {scores[channelId].results.map((r,idx)=>(
+                <div key={idx} className="rounded-xl border p-3 bg-slate-50">
+                  <div className="text-xs text-slate-500 mb-1">Question: {r.qText}</div>
+                  <div className="text-sm font-medium">
+                    Q{idx+1} • {r.passed ? <span className="text-emerald-600">Correct</span> : <span className="text-rose-600">Needs Work</span>}
+                  </div>
+                  <div className="mt-2 text-sm">
+                    <div className="text-slate-500 mb-1">Your reply:</div>
+                    <div className="bg-white rounded-lg border p-3 text-slate-700">{r.ans || r.answer}</div>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-600 space-y-1">
+                    {r.matched?.length>0 && <div>Matched: {r.matched.join(', ')}</div>}
+                    {r.missing?.length>0 && <div>Missing: {r.missing.join(', ')}</div>}
+                    {r.flags?.length>0 && <div className="text-rose-600">Flags: {r.flags.join(', ')}</div>}
+                    {r.why && <div className="italic text-slate-700">Why: {r.why}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Overall summary modal */}
+        <SummaryModal open={showSummary} scores={scores} onClose={() => setShowSummary(false)} />
+      </main>
+    </div>
+  );
+}
 
     /* ================================================================
        6) ACCESS GATE (Simple lock screen before entering the app)
        ----------------------------------------------------------------
        Shows a code input. On success, it lets the user into the app.
        Non‑coders: To remove the gate, always return <App /> in Root(). */
-    function AccessGate({ onAccess }) {
-      const [codeDraft, setCodeDraft] = useState('');
-      const [checking, setChecking] = useState(false);
-      const [accessErr, setAccessErr] = useState('');
+function AccessGate({ onAccess }) {
+  const [codeDraft, setCodeDraft] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [checking, setChecking] = React.useState(false);
+  const [accessErr, setAccessErr] = React.useState('');
 
-      async function handleAccessSubmit(e) {
-        e.preventDefault();
-        if (!codeDraft.trim()) return;
-        setChecking(true);
-        setAccessErr('');
-        try {
-          const r = await fetch(CHECK_ACCESS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: codeDraft.trim() })
-          });
-          const data = await r.json().catch(() => ({}));
-          if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
-          onAccess(); // Note: no persistence; will ask again on refresh
-          setCodeDraft('');
-        } catch (err) {
-          setAccessErr(err.message || 'Invalid code');
-        } finally {
-          setChecking(false);
-        }
-      }
+  async function handleAccessSubmit(e) {
+    e.preventDefault();
+    if (!codeDraft.trim() || !fullName.trim()) { setAccessErr('Full name is required'); return; }
+    setChecking(true); setAccessErr('');
+    try {
+      const r = await fetch(CHECK_ACCESS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: codeDraft.trim() })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data?.ok) throw new Error(data?.error || 'Invalid code');
+      onAccess({ fullName: fullName.trim(), email: email.trim() || null });
+      setCodeDraft('');
+    } catch (err) {
+      setAccessErr(err.message || 'Invalid code');
+    } finally { setChecking(false); }
+  }
 
-      return (
-        <div className="h-screen flex items-center justify-center bg-slate-900">
-          <form onSubmit={handleAccessSubmit} className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80">
-            <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
-            <input className="border rounded px-3 py-2" placeholder="Access code" value={codeDraft} onChange={e => setCodeDraft(e.target.value)}/>
-            {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
-            <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50" disabled={checking}>
-              {checking ? 'Checking…' : 'Enter'}
-            </button>
-          </form>
-        </div>
-      );
-    }
+  return (
+    <div className="h-screen flex items-center justify-center bg-slate-900">
+      <form onSubmit={handleAccessSubmit} className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-3 w-80">
+        <h1 className="text-lg font-semibold text-slate-800">Enter Access Code</h1>
+        <input className="border rounded px-3 py-2" placeholder="Full name" value={fullName} onChange={e=>setFullName(e.target.value)} />
+        <input className="border rounded px-3 py-2" placeholder="Email (optional)" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="border rounded px-3 py-2" placeholder="Access code" value={codeDraft} onChange={e => setCodeDraft(e.target.value)}/>
+        {accessErr && <div className="text-rose-600 text-sm">{accessErr}</div>}
+        <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-2 hover:bg-indigo-500 disabled:opacity-50" disabled={checking}>
+          {checking ? 'Checking…' : 'Enter'}
+        </button>
+      </form>
+    </div>
+  );
+}
 
     /* ================================================================
        7) ROOT (Decides what to show first)
        ----------------------------------------------------------------
        Shows AccessGate first; once accepted, shows the App. */
-    function Root() {
-      const [accessOk, setAccessOk] = useState(false);
-      if (!accessOk) return <AccessGate onAccess={() => setAccessOk(true)} />;
-      return <App />;
-    }
+function Root() {
+  const [accessOk, setAccessOk] = React.useState(false);
+  const [trainee, setTrainee] = React.useState(null);
+  if (!accessOk) return <AccessGate onAccess={(profile) => { setTrainee(profile); setAccessOk(true); }} />;
+  return <App trainee={trainee} />;
+}
 
     /* ================================================================
        8) MOUNT THE APP (Put it on the page)
