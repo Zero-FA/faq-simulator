@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Timezone handling: payload timeZone → REPORT_TZ → UTC
+    // Timezone handling: payload timeZone → REPORT_TZ → UTC (EST)
     const tz = timeZone || process.env.REPORT_TZ || 'UTC';
     const started = startedAt
       ? new Date(startedAt).toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' })
