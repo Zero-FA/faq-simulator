@@ -1,8 +1,3 @@
-Subscription Cycles, Auto-Renewal, and Credit Card Info
-Patrick
-Patrick
-Updated 4 months ago
-Not yet followed by anyone
 Managing your Apex Trader Funding account effectively involves understanding the billing structure, fees, and processes. This guide consolidates key information to help you navigate account setup, billing, and related questions seamlessly.
 
 30-Day Billing Cycle: How It Works
@@ -61,22 +56,6 @@ Important Reminder: Once the payment is processed, coupon codes cannot be applie
 To ensure you don’t miss out, review your order summary carefully before completing your purchase.
 By taking a moment to confirm your coupon has been applied, you can enjoy all the savings available to you!
 
- 
-
-Please watch the video below explaining how the Apex Coupon Codes work.
-
-Play
-
-
-00:00
-13:14
-Mute
-
-Settings
-Enter fullscreen
-
-Play
-
 Renewal Billing: Everything You Need to Know
 Managing your account subscription renewals with Apex Trader Funding is straightforward. Below are the key details and steps to ensure uninterrupted access to your accounts.
 
@@ -121,7 +100,6 @@ Handling Declined Payments
 Declined payments can occur due to various reasons, including bank restrictions or incorrect billing details. Here’s how to troubleshoot:
 
 Error 609 (Transaction Blocked by Issuer):
-
 This error typically indicates that your bank has flagged the transaction for security reasons.
 What to Do:
 Contact your bank directly to authorize the payment.
@@ -155,9 +133,6 @@ Select Account: Click on Reset next to the account you wish to reset.
 Warning: Make sure you reset the correct account, as this action is irreversible.
 Processing Time: The system typically processes resets within 10 minutes, but processing times may vary.
 
-
- 
-
 Important Notes on Resetting
 Understanding how resets work is essential for managing your Apex Trader Funding accounts effectively. Below are the key guidelines and considerations to keep in mind when resetting an account:
 
@@ -189,18 +164,6 @@ No Penalty for Resetting
 You can reset your accounts as many times as needed without any penalties.
 By following these guidelines, you can effectively manage your resets while avoiding common mistakes. Always track your accounts carefully and ensure you’re adhering to these rules to avoid unnecessary complications.
 
-Play
-
-
-06:31
-07:59
-Mute
-
-Settings
-Enter fullscreen
-
-Play
-
 Our Policy on Resets Upon Monthly Auto-Renewal
 Apex Trader Funding's reset policy is designed to simplify the process for traders and minimize unnecessary fees. If your Evaluation Account fails and you forget to cancel your subscription, a free reset will be applied automatically upon renewal as part of the renewal fee, provided certain conditions are met. This guide explains the process and helps you manage resets effectively.
 
@@ -223,16 +186,6 @@ Subsequent Failures: If your account fails again after the reset, it will not be
 Multiple Resets: Resets are only free upon renewal when the account is in a failed status. If you fail an active account and reset it, additional resets will require payment.
 
 This policy is designed to assist traders who might forget to cancel their accounts and sign up for new ones with available discount promotions. By automatically resetting failed accounts upon renewal, traders avoid having to pay both a renewal fee and a reset fee.
-
-How to Reset Your Account
-Log In to Your Dashboard
-
-Access your account from the Apex Trader Funding website.
-Select an Action
-
-For a new account: Go to Plan Signup and choose a plan.
-For a reset: Click Reset next to the desired account.
-Confirm Reset
 
 Confirm your reset. This action will:
 Restore your account balance.
@@ -284,15 +237,12 @@ Action	What to Do	Result
 Cancel Before Renewal	Cancel at least 1 day before the renewal date.	Avoid charges for the next billing cycle.
 Incorrect Plan Purchased	Keep, cancel, or sign up for the correct plan.	No refunds for mistakes.
 Need Optional Services	Ensure optional add-ons fit your needs before purchasing.	Avoid unnecessary fees or services.
-No Refunds Policy: Overview
-We aim to provide clear information to help you manage your Apex Trader Funding account effectively. By understanding this policy and taking proactive steps, you can minimize issues and avoid unnecessary charges. For any questions, refer to our FAQ section or contact our Help Desk. Thank you for your understanding and cooperation!
 
-At our core, we aim to provide transparent and comprehensive information about our services. To avoid any misunderstandings, we encourage you to carefully review our FAQ section and the details of our offerings before making a purchase. Below is a clear outline of our refund policy to ensure you understand our stance on refunds and related inquiries.
-
+No Rfunds Policy: Overview
 Type of Purchase	Refund Eligibility
-Initial Subscriptions	No refunds.
-Renewals	No refunds. Cancel before the renewal date to avoid charges.
-Resets	No refunds, even for mistaken resets.
-Optional Add-ons	No refunds for services like Market Depth or extra session logins.
-Technology Issues	No refunds for platform errors, data errors, or stuck orders.
-Incorrect Purchases	No refunds for wrong plan selection. Carefully review before purchasing.
+Initial Subscriptions:	No refunds.
+Renewals:	No refunds. Cancel before the renewal date to avoid charges.
+Resets:	No refunds, even for mistaken resets.
+Optional Add-ons:	No refunds for services like Market Depth or extra session logins.
+Technology Issues:	No refunds for platform errors, data errors, or stuck orders.
+Incorrect Purchases:	No refunds for wrong plan selection. Carefully review before purchasing.
