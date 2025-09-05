@@ -1,10 +1,3 @@
-Affiliate Program
-Vince
-Vince
-Updated 5 days ago
-Not yet followed by anyone
-Affiliate Program Eligibility Requirements
-
 Thank you for your interest in the Apex Trader Funding Affiliate Program! We are committed to maintaining a high-quality, results-driven affiliate network. To ensure alignment with our goals, we invite applications from individuals and organizations that meet the following eligibility criteria:
 
 Who We're Looking For
