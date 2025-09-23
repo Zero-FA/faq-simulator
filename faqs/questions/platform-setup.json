@@ -1,1 +1,22 @@
-
+[
+  "What should I do if I already have another version of RTrader installed before setting up Apex’s RTrader Pro?",
+  "Where do I find my Rithmic username and password, and what common mistake should I avoid when entering them?",
+  "Which system and gateway should I select in RTrader Pro when connecting with Apex Trader Funding?",
+  "Why is it important to sign both agreements in RTrader Pro, and which option should I select—Professional or Non-Professional?",
+  "Should market data be turned on or off when first logging into RTrader Pro with Apex accounts?",
+  "Why should I avoid signing up for NinjaTrader using Google or Apple logins?",
+  "What should I do if I don’t receive the NinjaTrader confirmation email after registering?",
+  "Where in NinjaTrader do I need to check the 'Multi-provider' box, and why is restarting the platform required afterward?",
+  "When setting up connections in NinjaTrader, which option should I choose to link Apex accounts?",
+  "What does it mean when NinjaTrader prompts me to choose between Live and Simulation, and which should I select for Apex accounts?",
+  "How can I fix the 'String format' chart error that appears when using the Sniper Trading System after upgrading NinjaTrader?",
+  "Why is it critical to keep my GPU drivers up to date when running NinjaTrader, and which manufacturers’ drivers should I update?",
+  "How are OCO (One Cancels Other) orders handled in Rithmic, and what risk exists if I lose connection while they are active?",
+  "What should I do if I haven’t received my Tradovate account credentials after six hours?",
+  "How long can it take for Tradovate data to become active after signing data agreements, and when should I submit a help desk ticket if data isn’t live?",
+  "Why is it important to select Non-Professional on the Tradovate Uniform Subscriber Agreement, and what happens if I don’t?",
+  "Why might TradingView show a $9.99 charge, and how can I ensure the service is free through my Tradovate account?",
+  "What should I do if I see errors when trying to connect Tradovate to TradingView for the first time?",
+  "How frequently does the free TradingView add-on update data, and what option should I purchase if I want continuous real-time data?",
+  "In WealthCharts, where can I monitor both active positions and placed orders, and what information is shown in each section?"
+]
