@@ -1,1 +1,22 @@
-
+[
+  "How does the trailing threshold update during a trade based on the highest unrealized balance versus the closed PnL?",
+  "In FULL accounts, when does the trailing drawdown stop moving, and what does the Safety Net (initial balance + drawdown + $100) represent?",
+  "In STATIC accounts, how does the fixed drawdown behave, and how is it different from the trailing drawdown in FULL accounts?",
+  "For Rithmic evaluation accounts, when does the trailing drawdown stop (e.g., when the threshold reaches the profit target on a 50K plan)?",
+  "For Tradovate evaluation accounts, does the trailing drawdown ever stop during evaluations, or does it keep trailing?",
+  "Where do you monitor your max/trailing drawdown and auto-liquidation threshold to avoid failing the evaluation?",
+  "What happens to your evaluation if your account drops below the trailing drawdown threshold at any time?",
+  "What are the evaluation pass requirements regarding minimum trading days and the profit goal?",
+  "By what exact time must all trades be closed and pending orders canceled each day, and why shouldn’t you rely on the auto close-out safeguard?",
+  "Do Sundays and half-day holidays count as trading days, and how are early holiday market closes handled?",
+  "Can you convert an evaluation or funded account from Rithmic to Tradovate (or vice versa), and what is the policy on refunds for wrong platform selection?",
+  "Are evaluations traded with SIM or live money, and can you trade evaluations, PAs, and a personal account at the same time?",
+  "Do you have to trade every single day during the evaluation, and what are the rules around recurring payments and resets?",
+  "How is the maximum position size enforced across regular and micro contracts relative to your plan’s contract limit?",
+  "What is the difference between selecting Non-Professional versus Professional market data status, and what fee implications does this have?",
+  "Is the profit goal calculated net of commissions and fees, and where can you view your real-time PnL and balances?",
+  "After passing the evaluation (profit goal + seven days), what happens next and why should you stop trading the evaluation account?",
+  "If you haven’t received your contract and payment links by the tenth day after passing, what steps should you take before contacting support?",
+  "When activating PA accounts, what’s the difference between Monthly and Lifetime fees, and why can’t you change this choice later?",
+  "In what order should you activate multiple passed evaluations (e.g., 01, 02, 03…) and why prioritize Lifetime payments before Monthly?"
+]
