@@ -1,1 +1,22 @@
-
+[
+  "What processor specifications are recommended for day trading performance?",
+  "How much RAM is suggested for smooth trading, and why might 32GB be preferable?",
+  "Why is an SSD preferred over an HDD for trading setups?",
+  "What type of graphics card is recommended for rendering charts effectively?",
+  "Why should traders use a wired Ethernet connection instead of Wi-Fi?",
+  "How can limiting historical data in NinjaTrader 8 improve performance?",
+  "Why should you avoid using excessive indicators or complex chart styles in NinjaTrader 8?",
+  "What is the benefit of closing unused workspaces in NinjaTrader 8?",
+  "Why should NinjaTrader 8 and your computer be restarted regularly?",
+  "What tool can Rithmic/Tradovate account users use to measure lag in NinjaTrader 8?",
+  "How do you import the NT8 Lag Analyzer add-on into NinjaTrader?",
+  "What NinjaTrader steps can help if you notice lagging market data?",
+  "Why might switching to IQFeed improve data speed and stability in NinjaTrader?",
+  "How do you clear NinjaTrader’s cache to help reduce lag?",
+  "What is Safe Mode in NinjaTrader, and how do you start the platform this way?",
+  "How can disabling tick refresh on charts improve performance?",
+  "Why is accurate time synchronization important for trading performance?",
+  "What regular maintenance tasks should be performed to keep a trading computer optimized?",
+  "Why is using an Ethernet cable and maintaining low latency critical for trading?",
+  "What general tips, such as disabling background programs or adjusting power settings, can further reduce trading lag?"
+]
