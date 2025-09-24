@@ -1,24 +1,3 @@
-Trailing Drawdown and Rules
-Understanding the Trailing Threshold and Evaluation Rules (Master Course)
-Introduction
-
-This guide covers how the trailing threshold works with trading evaluation and funded accounts, including specific details for RITHMIC and TRADOVATE accounts. We’ll explain trailing drawdowns, max drawdowns, and evaluation rules and provide tips for monitoring your account effectively.
-
-The video below summarises the Trailing Drawdown Threshold:
-
-Play
-
-
-00:00
-14:13
-Mute
-
-Settings
-Enter fullscreen
-
-Play
-
- 
 Key Concepts
 Starting Balance: Your account starts with an initial balance, and each plan has a specified maximum number of contracts you can trade.
 No Daily Max Drawdown: There is no daily maximum drawdown limit.
@@ -351,20 +330,9 @@ Example: If you have accounts 01, 02, 03, and 04, and you attempt to pay for and
 
 Activation Limit: You can activate and pay for up to 20 PA accounts. Once these accounts are set up, changes or cancellations are not possible. 
 
-Paying for a Lifetime PA Fee first:
-
-
-
-Paying for monthly PA fees:
-
-
-
-How can you pay for your PA?
-Payment Deadlines and Refund Policy
 After passing your Evaluation Account, you must sign your PA agreements and promptly pay your PA fee using the Signatures tab or your Apex Dashboard.
 
 Refunds:
-
 If you pass your Evaluation Account before 5 PM ET on the day before your rebilling date and fully activate your PA account within 48 hours, you are eligible for a refund of the evaluation renewal fee (NOT the original account fee). Submit a Help Desk ticket with your account number (e.g., APEX-12345-67) to request this refund.
 Important: Evaluations must be passed before market close on the day preceding the renewal billing date.
 If you pass on the same day as your rebilling date, refunds for rebilling charges are not available. Remember, if your renewal date is the 20th, any trades after 6 PM ET on the 19th are classified as the trading day for the 20th, and this will count as the first day of your new subscription cycle.
