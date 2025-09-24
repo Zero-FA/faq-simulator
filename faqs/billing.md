@@ -1,5 +1,3 @@
-Managing your Apex Trader Funding account effectively involves understanding the billing structure, fees, and processes. This guide consolidates key information to help you navigate account setup, billing, and related questions seamlessly.
-
 30-Day Billing Cycle: How It Works
 At Apex Trader Funding, we operate on an automatic 30-day billing cycle for your account subscriptions. Here’s what you need to know:
 
@@ -238,7 +236,7 @@ Cancel Before Renewal	Cancel at least 1 day before the renewal date.	Avoid charg
 Incorrect Plan Purchased	Keep, cancel, or sign up for the correct plan.	No refunds for mistakes.
 Need Optional Services	Ensure optional add-ons fit your needs before purchasing.	Avoid unnecessary fees or services.
 
-No Rfunds Policy: Overview
+No Refunds Policy: Overview
 Type of Purchase	Refund Eligibility
 Initial Subscriptions:	No refunds.
 Renewals:	No refunds. Cancel before the renewal date to avoid charges.
