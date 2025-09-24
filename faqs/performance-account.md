@@ -1,25 +1,3 @@
-Performance Account (PA) and Live Account Rules
-Patrick
-Patrick
-Updated 3 days ago
-Not yet followed by anyone
-Overview of Consistency Rule
-THIS PAGE HAS UPDATED DETAILED INFORMATION ON RECENT CLARIFICATIONS OF RULES
-
-Here is a video breakdown summarizing the new 3.0 rules outlined in this article.
-
-Play
-
-
-08:00
-15:41
-Mute
-
-Settings
-Enter fullscreen
-
-Play
-
 What are the Consistency Rules for PA and Live Accounts?
 At Apex Trader Funding, we believe responsible, disciplined trading is the key to long-term success. Our consistency rules for PA and Live accounts are designed to help you build a sustainable and successful trading career. These rules are not just about limitations; they are about creating a strong foundation for you to grow and thrive as a trader.
 
@@ -139,21 +117,6 @@ Exceptions: The rule applies until the sixth payout or until the account is tran
 This guideline is designed to ensure disciplined, consistent trading and is not meant to penalize traders who maintain a structured trading approach. However, it discourages traders who use a high-risk, windfall trading strategy to secure withdrawals without maintaining consistent trading behavior.
 
 The 30% rule is reviewed during payout approvals, and payouts may be denied if the profit balance does not align with the rule’s parameters. Traders are encouraged to trade consistently and adhere to these guidelines to avoid issues with payout approvals.
-
-Clarity between 30% Drawdown Rule & 30% Consistency Rule
-Watch the video below to understand how you can calculate your 30% rules before requesting a payout.
-
-Play
-
-
-00:00
-09:00
-Mute
-
-Settings
-Enter fullscreen
-
-Play
 
 Risk Management, Stop Losses, Profit Targets, Trailing
 Apex Trader Funding provides traders with an opportunity to demonstrate disciplined risk management and effective trading strategies. Proper risk management is not just encouraged but is mandatory for all accounts, ensuring that trading is conducted responsibly and without speculative or reckless behavior.
@@ -314,7 +277,6 @@ By following these guidelines, you ensure that you remain in full control of you
 
 Hedging and Correlated Instruments Rule
 Traders shall not trade one direction on minis and another direction on micros at the same time. Traders shall not spread trade indices, i.e., long ES, and short YM. All Apex accounts must be traded directionally only and never be both long and short concurrently in the same account or in other accounts in any correlated markets. This includes all indices, metals, grains, currencies, or any correlating instrument, no matter the size, i.e., micro, mini, etc. For example, the trader cannot be short NQ and Long ES under any circumstance.
-
 
 
 Copy or Trading Services Operations or Participation
