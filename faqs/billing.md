@@ -115,6 +115,7 @@ Avoiding Duplicate Payment Errors
 This error occurs when a payment is retried too quickly after a failed attempt or when the same transaction is processed multiple times within a short time frame. To avoid this, wait a few minutes before attempting the payment again.
 
 ###### 2nd FAQ: Reset Options and Invoice Cancellations
+
 In your trading journey, you might encounter situations where your evaluation account becomes inactive due to breaking a rule—such as reaching the maximum drawdown threshold. When this happens, an error message stating, “Trades Can Only Be Placed By Administrator,” may appear. If you wish to continue trading within your subscription period, you have the option to reset your account. This article provides detailed information on how to reset your evaluation account, our policies regarding resets, and important considerations to keep in mind.
 
 Resetting Your Evaluation Account
@@ -268,8 +269,8 @@ Always cancel at least one day before the renewal date to avoid unwanted charges
 3. Contact The Help Desk for Guidance
 If you’re unsure which account to cancel, contact the Help Desk before proceeding.
 
-####### 3rd FAQ:
-Refunds and Credits
+####### 3rd FAQ: Refunds and Credits
+
 Refunds and Credits Policy
 At Apex Trader Funding, we are committed to providing clarity and transparency in all aspects of our services. This policy outlines everything you need to know about refunds and related inquiries. For ease of understanding, the information is presented visually and concisely, ensuring accuracy and alignment with our practices.
 
