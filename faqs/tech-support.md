@@ -1,8 +1,3 @@
-Performance Optimization Tips & Lag
-Patrick
-Patrick
-Updated 3 months ago
-Not yet followed by anyone
 For day traders, every millisecond counts. Ensuring your computer runs at peak performance can make the difference between a profitable trade and a missed opportunity. Here are some helpful tips.
 
 What are the ideal computer specifications for day trading?
@@ -63,21 +58,6 @@ Disconnect and remove tick refresh from all charts.
 Re-save your workspace, reconnect to data, and reload.
 Ensure Adequate System Performance:
 Verify that your computer meets the minimum benchmark of 30k. Watch the instructional video below for guidance on checking your system’s performance. 
-Play
-
-
-00:00
-1:00:35
-Mute
-
-Settings
-Enter fullscreen
-
-Play
-
-      7. Make sure you have the following settings in your RTrader:
-
-
 
 How can I reduce lag caused by time synchronization issues?
 Accurate time synchronization is crucial for aligning trades with market events. Use a reliable time-sync program to ensure your PC’s clock matches the official market time:
