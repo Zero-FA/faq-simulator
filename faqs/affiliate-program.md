@@ -1,19 +1,6 @@
-Thank you for your interest in the Apex Trader Funding Affiliate Program! We are committed to maintaining a high-quality, results-driven affiliate network. To ensure alignment with our goals, we invite applications from individuals and organizations that meet the following eligibility criteria:
+ffiliates are encouraged to maintain a consistent content creation schedule, producing high-quality, original material that provides genuine value to the trading community. This can include educational videos, trade breakdowns, strategy guides, market commentary, or platform reviews.
 
-Who We're Looking For
-
-We are seeking affiliates who have a credible and active presence in the trading and finance space. Eligible applicants typically demonstrate their influence and expertise through one or more of the following:
-
-Live Streaming: We especially value affiliates who host live trading sessions, market analysis, or financial discussions on platforms like YouTube. Affiliates who actively engage their audience through consistent, high-quality live content are highly encouraged to join our program.
-Social Media Platforms: You maintain a channel with relevant financial or trading content on platforms such as Instagram, YouTube, TikTok, Facebook, X (formerly Twitter), LinkedIn, or Twitch.
-Website or Blog: You operate a site focused on trading, indicators, investing, or financial education.
-Live Trading Community: You manage a real-time trading community on platforms like Discord, Telegram, Slack, or Zoom, engaging members through discussions, training sessions, or mentorship programs.
-Trading Education Platform: You run a trading academy, coaching program, or educational service offering live sessions, webinars, or video tutorials.
-Content Expectations
-
-Affiliates are encouraged to maintain a consistent content creation schedule, producing high-quality, original material that provides genuine value to the trading community. This can include educational videos, trade breakdowns, strategy guides, market commentary, or platform reviews.
-
-⚠️ Who Will Not Qualify (Important)
+Who Will Not Qualify (Important)
 
 To preserve the integrity of the program, we do not accept applications from:
 
