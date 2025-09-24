@@ -269,7 +269,7 @@ Always cancel at least one day before the renewal date to avoid unwanted charges
 3. Contact The Help Desk for Guidance
 If you’re unsure which account to cancel, contact the Help Desk before proceeding.
 
-####### 3rd FAQ: Refunds and Credits
+###### 3rd FAQ: Refunds and Credits
 
 Refunds and Credits Policy
 At Apex Trader Funding, we are committed to providing clarity and transparency in all aspects of our services. This policy outlines everything you need to know about refunds and related inquiries. For ease of understanding, the information is presented visually and concisely, ensuring accuracy and alignment with our practices.
