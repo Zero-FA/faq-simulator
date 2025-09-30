@@ -413,6 +413,58 @@
 
       const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
+      function recomputeUnlocked(nextCompletedIds) {
+        let highest = -1;
+        for (let i = 0; i < CHANNELS.length; i++) {
+          if (nextCompletedIds.has(CHANNELS[i].id)) highest = i; else break;
+        }
+        return Math.max(0, highest);
+      }
+
+      function resetEphemeralState() {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setStarted(false);
+        setFinished(false);
+        setQCount(0);
+        setSecondsLeft(RUN_SECONDS);
+        setHistory([]);
+        setGrading(null);
+        setDraft('');
+        setMessages([]);
+        setRunStartedAt(null);
+      }
+
+      async function resetChannel(targetId = channelId) {
+        setScores(prev => {
+          const next = { ...prev };
+          delete next[targetId];
+          return next;
+        });
+
+        setCompletedIds(prev => {
+          const next = new Set(prev);
+          next.delete(targetId);
+          const newUnlocked = recomputeUnlocked(next);
+          setUnlockedIdx(newUnlocked);
+          return next;
+        });
+
+        if (targetId === channelId) {
+          resetEphemeralState();
+          try { setFaqMd(await fetchFAQMd(channelId)); } catch {}
+        }
+      }
+
+      async function resetAll() {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setScores({});
+        setCompletedIds(new Set());
+        setUnlockedIdx(0);
+        setShowSummary(false);
+        resetEphemeralState();
+        try { setFaqMd(await fetchFAQMd(channelId)); } catch {}
+      }
+
       // ===============================
       // RENDER
       // ===============================
@@ -450,21 +502,44 @@
                 <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">{CHANNELS.find(c=>c.id===channelId)?.name}</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>{mmss(secondsLeft)}</div>
-                {!started && (
-                  <button
-                    className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-                    onClick={startRun}
-                    disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
-                    title={
-                      scores[channelId]
-                        ? 'This channel is completed. Switch channels or refresh to reset all.'
-                        : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
-                    }
-                  >
-                    Start
-                  </button>
-                )}
+                <div className={`text-sm font-semibold text-slate-700 ${started&&!finished?'':'hidden'}`}>
+                  {mmss(secondsLeft)}
+                </div>
+
+                {(!started || finished) && (
+  <>
+    <button
+      className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+      onClick={startRun}
+      disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+      title={
+        scores[channelId]
+          ? 'This channel is completed. Switch channels or reset to try again.'
+          : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
+      }
+    >
+      Start
+    </button>
+
+    <button
+      className="px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+      onClick={() => resetChannel(channelId)}
+      disabled={started}
+      title="Reset just this channel back to Start"
+    >
+      Reset Channel
+    </button>
+
+    <button
+      className="px-3 py-1.5 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+      onClick={resetAll}
+      disabled={started}
+      title="Reset everything back to Start"
+    >
+      Reset All
+    </button>
+  </>
+)}
               </div>
             </div>
 
