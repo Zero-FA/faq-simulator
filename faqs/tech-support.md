@@ -92,3 +92,40 @@ Upgrade Your Hardware: As mentioned before, consider upgrading components like y
 Cooling: Proper ventilation is key; it prevents overheating and performance issues.
 Power Settings: Set your PC to “High Performance” mode in power settings.
 By following these guidelines, you can ensure your computer is optimized for day trading, giving you the best chance to stay competitive in the fast-paced world of financial markets.
+
+###### 2FA FAQ
+
+Setting Up Two-Factor Authentication (2FA)
+Setting Up Two-Factor Authentication (2FA) After Passing Your Evaluation
+Effective June 30, 2025, all users who have passed an evaluation will be required to set up Two-Factor Authentication (2FA) on their Apex account.
+What is Two-Factor Authentication (2FA)?
+2FA is an extra security step that helps protect your Apex account. It requires you to use a unique code from your phone (or another device) every time you log in, in addition to your regular password.
+Learn more about 2FA: What is 2FA?
+Who is Required to Enable 2FA?
+All users who have passed an evaluation, regardless of when it was passed, are now required to enable 2FA in order to continue using their account. This security measure is permanent and has been put in place to provide ongoing protection against unauthorized access. Once enabled, 2FA will remain active on your account indefinitely.
+What to Expect After Passing Your Evaluation
+Notification:
+After you pass your evaluation and log in to your dashboard, you’ll see a notification requiring you to enable Two-Factor Authentication (2FA):
+You won’t be able to take further action on your account until you complete the 2FA setup.
+Setting Up 2FA:
+You’ll be prompted to scan a QR code using an authenticator app on your phone (such as Google Authenticator, Authy, or Microsoft Authenticator).
+Download an authenticator app of your choice from your app store if you don’t already have one.
+Open the app.
+Select the '+' symbol on the app.
+Then select 'scan the QR code' option.
+Scan the QR code on your Apex Member Dashboard (image above).
+The app will generate a 6-digit code.
+Enter this code into the setup screen on your dashboard.
+Confirmation:
+Once you enter the correct code, you will see a confirmation that 2FA has been successfully enabled on your account. 
+What to Expect After 2FA Has Been Enabled
+Once 2FA has been set up and enabled on your account, you will be required to enter a one-time code from your chosen authenticator app each time you log in.
+On the initial login screen, enter your username or email, and your password, in the same way as you would have prior to enabling the 2FA, and click the Log In button:
+2. With 2FA enabled, you will be required to complete an extra step to help confirm your identity and keep your account secure. When prompted to enter a One Time Password as shown below, open your chosen authenticator app and enter the unique one-time code associated with your Apex login, and click Confirm:
+PLEASE NOTE: Your One-Time Password is the 6-digit numeric authenticator code. Your chosen authenticator app will generate a unique, one-time code each time you go to log in. 
+Troubleshooting
+If you get an error message stating there is an issue with second factor authentication, please double-check your authenticator app to verify you are entering the correct numeric code:
+Common troubleshooting tips:
+These codes are only valid for approximately 30 seconds at a time. Please ensure you are entering the correct code displayed at the time.
+If you use the same authenticator app for multiple logins, please ensure you are using the code associated with your Apex login.
+If you have a personal Apex user account, and a business Apex user account, you will be required to enable separate 2FA for each account. When logging in, ensure you are using the correct authenticator code for the intended Apex account (personal or business).
