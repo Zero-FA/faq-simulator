@@ -258,7 +258,11 @@
             return;
           }
 
-          const asked = messages.filter(m => m.from === 'bot').map(m => m.text).filter(Boolean);
+        // At the top of App():
+const [askedSet, setAskedSet] = useState(new Set());
+
+// Inside askNext(), replace "asked = …" with:
+const avoid = Array.from(askedSet);
 
           const res = await fetch(COACH_URL, {
             method: 'POST',
@@ -275,6 +279,8 @@
           try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
           if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
           const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
+
+          setAskedSet(prev => new Set(prev).add(qText));
 
           setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
           setHistory(h=>[...h, {role:'assistant', content:qText}]);
