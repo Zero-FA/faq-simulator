@@ -129,3 +129,35 @@ Common troubleshooting tips:
 These codes are only valid for approximately 30 seconds at a time. Please ensure you are entering the correct code displayed at the time.
 If you use the same authenticator app for multiple logins, please ensure you are using the code associated with your Apex login.
 If you have a personal Apex user account, and a business Apex user account, you will be required to enable separate 2FA for each account. When logging in, ensure you are using the correct authenticator code for the intended Apex account (personal or business).
+
+###### Common User Misstakes
+
+Common User Mistakes With Solutions
+Navigating the complexities of trading accounts involves understanding various processes, from evaluations and subscriptions to compliance statuses. Whether you’re managing your Apex account or utilizing platforms like NinjaTrader, it’s essential to stay informed to ensure seamless trading operations. This guide provides comprehensive insights into managing your trading account effectively.
+Canceling a Passed Evaluation
+Deciding to cancel a passed evaluation requires careful consideration. Once an evaluation is passed, canceling it means you cannot proceed with the PA (Professional Account) activation process. If you choose to cancel, refer to the Resetting Your Evaluation Account to understand the implications and steps involved.
+Reviewing Trading Days and Profit & Loss (PnL)
+To monitor your trading performance, it’s crucial to review your trading days and profit and loss (PnL) for PA accounts regularly. Access your PA charts through your account dashboard to ensure accurate tracking and analysis of your trading activities.
+No More Evaluations Allowed
+Receiving a notice that no more evaluations are allowed typically indicates that your account is under review by the relevant department. This status requires your attention to address any compliance issues or to provide the necessary documentation to continue trading.
+Understanding Probation Status
+If your account is placed on probation, it signifies that specific compliance guidelines need your attention. To navigate this status, review the details of your probation in your member dashboard: Trader Probation
+Understanding the compliance rules and the required next steps is essential to restore your account to good standing.
+Resetting a Canceled Account
+In cases where your account has been canceled but remains within the subscription period, it remains tradable until the expiration date. To reset the account balance and parameters, you can perform a manual reset. Detailed instructions are available in the Resetting Your Evaluation Account article.
+Manual Renewal of Subscription After Failed Rebill
+A failed payment attempt can disrupt your subscription. To manually renew your subscription after a failed rebill, log into your dashboard, locate your invoice under Payment History, and select the “Renew Manually” option. This ensures your subscription remains active without interruption.
+Avoid Trading Expired Contracts
+Trading on expired contracts can result in breaches of account rules. To prevent this, utilize tools like the Batch Rollover feature in NinjaTrader, which helps keep your contracts updated automatically. For more information on rolling over contracts, refer to the How to Roll Over Futures Contracts guide.
+Managing a Failed Rebill
+When a rebill fails, your evaluation account subscription is automatically canceled. To reactivate your account, you must either create a new evaluation or update your payment method for future subscriptions. Ensuring your payment information is current can prevent such disruptions.
+Dealing with Admin-Only Status
+Accounts marked as “Admin-Only” indicate a failure to meet evaluation criteria. These accounts can be reset manually or automatically upon subscription renewal. To reset the account balance and trading parameters, follow the How to Reset an Account guide.
+Updating Payment Methods
+Preventing failed rebills starts with keeping your payment details up to date. Update your payment information through the dashboard under the “Update CC” section. Regularly verifying your billing information ensures smooth processing of your subscriptions.
+Avoiding Subscription Overcharges
+Accounts in a failed state remain active until they are canceled manually. To avoid overcharges, ensure that any unused accounts are canceled before the renewal date. For detailed instructions on canceling an account, refer to the Account Cancellation.
+Handling Declined Payments
+Declined payments can occur due to mismatched billing information or bank restrictions. To resolve this, ensure that your billing address matches your card details precisely. Verifying your payment information can help prevent declined transactions and maintain uninterrupted access to your trading account.
+Effective management of your trading account involves staying proactive about evaluations, subscriptions, and compliance requirements. By understanding and utilizing the available resources and guides, you can maintain a smooth and profitable trading experience.
+Once you have verified your information is correct, please follow the video below to settle the payment within 72 hours before the account expires and is no longer salvageable. 
