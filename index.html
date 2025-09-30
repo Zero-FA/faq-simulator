@@ -262,8 +262,8 @@ async function askNext(){
       return;
     }
 
-    // use the set instead of deriving from messages
-    const avoid = Array.from(askedSet);
+  // On the very first question of a run, ignore any stale set
+const avoid = qCount === 0 ? [] : Array.from(askedSet);
 
     const res = await fetch(COACH_URL, {
       method: 'POST',
