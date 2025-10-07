@@ -1,36 +1,30 @@
-{
-  "Performance Account (PA) Trading Rules": [
-    "What is the Contract Scaling Rule in a PA account?",
-    "Define the 30% Negative P&L Rule or Maximum Adverse Excursion (MAE).",
-    "Explain the 5:1 Risk-Reward Ratio Rule.",
-    "What is the Hedging and Correlated Instruments Rule?",
-    "Describe the One Direction Rule related to directionally biased trading.",
-    "What is the Safety Net Requirement Rule?",
-    "Can traders share their PA account login or credentials?",
-    "What does our system do once you fail a PA?",
-    "Do we provide coupon codes whenever a user fails a PA?",
-    "When a user fails a PA, they get an email with a unique coupon code to purchase an eval. How much time does the user have to use that coupon code?",
-    "What is the maximum allowed number of PAs within the same household?",
-    "True/False: The Safety Net rule only applies for payouts 1 to 3.",
-    "What is the lifetime fee for a 50k Rithmic PA?"
-  ],
-  "PA Payout Parameters and Process": [
-    "How many approved payouts must be completed before a trader receives 100% payouts?",
-    "Through which platform does Apex process payouts for non-U.S. traders?",
-    "What types of payout methods are available for U.S.-based traders?",
-    "How can international users update their payout method?",
-    "What must U.S. traders verify when setting up ACH payments?",
-    "Can traders request payout withdrawals during the evaluation?",
-    "What is the profit share percentage for the first $25,000 a funded trader earns?",
-    "What profit share percentage applies after a trader exceeds $25,000 in profits?",
-    "How often can payouts be requested from a funded PA account?"
-  ],
-  "Additional Rules and Restrictions": [
-    "Are trading bots allowed in PA accounts?",
-    "Can traders place orders during news releases?",
-    "How often are PA account charts/metrics updated in the Apex dashboard?",
-    "How a High-Frequency bot can be used in compliance with the rules to profit from markets?",
-    "Is it possible to create an additional Apex account so the users can increase the amount of permitted PA accounts?",
-    "Can users utilize their full Trailing Threshold as a Stop Loss?"
-  ]
-}
+[
+  "What is the Contract Scaling Rule in a PA account?",
+  "Define the 30% Negative P&L Rule or Maximum Adverse Excursion (MAE).",
+  "Explain the 5:1 Risk-Reward Ratio Rule.",
+  "What is the Hedging and Correlated Instruments Rule?",
+  "Describe the One Direction Rule related to directionally biased trading.",
+  "What is the Safety Net Requirement Rule?",
+  "Can traders share their PA account login or credentials?",
+  "What does our system do once you fail a PA?",
+  "Do we provide coupon codes whenever a user fails a PA?",
+  "When a user fails a PA, they get an email with a unique coupon code to purchase an eval. How much time does the user have to use that coupon code?",
+  "What is the maximum allowed number of PAs within the same household?",
+  "True/False: The Safety Net rule only applies for payouts 1 to 3.",
+  "What is the lifetime fee for a 50k Rithmic PA?",
+  "How many approved payouts must be completed before a trader receives 100% payouts?",
+  "Through which platform does Apex process payouts for non-U.S. traders?",
+  "What types of payout methods are available for U.S.-based traders?",
+  "How can international users update their payout method?",
+  "What must U.S. traders verify when setting up ACH payments?",
+  "Can traders request payout withdrawals during the evaluation?",
+  "What is the profit share percentage for the first $25,000 a funded trader earns?",
+  "What profit share percentage applies after a trader exceeds $25,000 in profits?",
+  "How often can payouts be requested from a funded PA account?",
+  "Are trading bots allowed in PA accounts?",
+  "Can traders place orders during news releases?",
+  "How often are PA account charts/metrics updated in the Apex dashboard?",
+  "How a High-Frequency bot can be used in compliance with the rules to profit from markets?",
+  "Is it possible to create an additional Apex account so the users can increase the amount of permitted PA accounts?",
+  "Can users utilize their full Trailing Threshold as a Stop Loss?"
+]
