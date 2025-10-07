@@ -1,20 +1,26 @@
-[
-"Are there any fees besides the monthly evaluation fee when trading in the evaluation?",
-"What is charged if a trader wants to reset their evaluation account after failing?",
-"Does resetting an account change the 30-day billing cycle?",
-"What happens if the evaluation account is failed on the day before renewal?",
-"How long is the grace period for failed renewal payments before service is interrupted?",
-"Can an evaluation account be canceled automatically upon failing?",
-"What happens if a trader does not cancel the evaluation account subscription after failing?",
-"How does one manually renew their Apex evaluation account payment if it fails?",
-"How many evaluation accounts can a trader subscribe to at the same time?",
-"Where can users find the promo code discounts?",
-"Can traders pause their evaluation subscription instead of canceling it?",
-"If a trader cancels but then wants to rejoin, what do they need to do?",
-"How are refunds handled if a trader cancels an evaluation subscription midway through the billing cycle?",
-"Are platform data and commissions included in the monthly evaluation fee?",
-"True/False: If you select the wrong account for a reset, this action is irreversible.",
-"True/False: Resetting an account will reinstate a previously canceled invoice.",
-"What are the conditions for a free reset on renewal?",
-"True/False: The only way to reset an account is with the free reset on renewal."
-]
+{
+  "Refunds, Resets, Subscriptions Questions": [
+    "Does Apex Trader Funding offer refunds for any purchases?",
+    "What is the cancellation deadline to avoid renewal charges?",
+    "If you miss the cancellation deadline, will you get refunded?",
+    "Resetting an account extends your renewal or expiration date?",
+    "Can canceled evaluation accounts be reset?",
+    "Can profits or trading days be transferred after account cancellation?",
+    "Can canceled accounts be reinstated?",
+    "Once an evaluation invoice is canceled, is the account still tradeable and allowed to be passed and converted into a PA?",
+    "Are incorrect purchases refundable?",
+    "Is it possible to change credit card info for subscription billing?",
+    "What is the financial consequence of failing to cancel before renewal?",
+    "Are refunds available for partial periods if you cancel mid-cycle?",
+    "True/False and why: If a PA is in a failed state before the renewal date, the balance is reset automatically at no extra charge and the subscription remains active.",
+    "What will happen if the payment is processed without a coupon code? Will you get a refund or adjustment?",
+    "How often does rebilling occur?",
+    "What should a user do if they get error 609?",
+    "What does the monthly evaluation fee include for Rithmic accounts?",
+    "Can resets take longer than 5 minutes to be completed? Why?",
+    "If an invoice fails to renew, what are the 4 steps that should be followed to manually renew it?",
+    "True/False and why: If an evaluation is in a failed status by the market close before renewal, the user can get a free reset if they click “reset” in their dashboard.",
+    "Can we offer refunds for optional Addons like Market Depth or extra session logins?",
+    "What should a user do if they choose the wrong plan?"
+  ]
+}
