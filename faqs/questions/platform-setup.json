@@ -1,30 +1,38 @@
-[
-"What data depth does Rithmic provide for market analysis?",
-"Can Rithmic be run natively on Mac OS?",
-"What data feeds are included with Rithmic accounts?",
-"Can canceling and removing accounts from the Rithmic dashboard be undone?",
-"What are 4 things you should check if you can’t log in to RTrader?",
-"Are any additional software downloads required for Tradovate Web?",
-"Can a user set bracket orders (ATMs) with the Tradovate Groups (Trade Copier)?",
-"What is the next step users should follow after logging in to Tradovate for the first time?",
-"True/False: The free access to TradingView only includes data that updates every 5 seconds on the TradingView chart.",
-"How are commissions deducted for Tradovate?",
-"Can EUREX products such as the DAX Index, Mini-DAX, Euro Stoxx 50, Euro-Buxl, and Euro-Schatz be traded without any additional charges on Tradovate?",
-"How are commissions deducted in the WealthCharts platform?",
-"Which products/instruments are not eligible on the WealthCharts platform?",
-"Does WealthCharts work on Windows and Mac?",
-"What should a user do if they don’t remember their WealthCharts credentials?",
-"Which platform is the only one that allows integration with TradingView?",
-"Which platform is known for its ultra-low latency and direct market access suited for high-frequency traders?",
-"Which platform offers a fully cloud-based trading interface accessible from web, desktop, and mobile apps without software installation?",
-"Which platform provides award-winning advanced market scanning tools and built-in trade copier features?",
-"Which platform requires virtual machines or remote desktop access to be used on Mac OS systems?",
-"Which platform emphasizes user education and live support features as part of its core offering?",
-"Which platform does not have a fully featured mobile app and is primarily desktop/web focused?",
-"Which platform is noted for handling multiple logins and accounts simultaneously using a secondary login feature?",
-"Which platform (or platforms) requires no software download for trading and works entirely in web browsers?",
-"Which platform offers advanced scripting support for custom technical indicators and automation?",
-"Which platform(s) have a built-in educational streaming platform?",
-"Which platforms support integration with NinjaTrader?",
-"Can I convert between Rithmic, Tradovate, and WealthCharts or request a refund if I choose the wrong platform for my evaluation account? Why?"
-]
+{
+  "Rithmic Platform Questions": [
+    "What data depth does Rithmic provide for market analysis?",
+    "Can Rithmic be run natively on Mac OS?",
+    "What data feeds are included with Rithmic accounts?",
+    "Can canceling and removing accounts from the Rithmic dashboard be undone?",
+    "What are 4 things you should check if you can’t log in to RTrader?"
+  ],
+  "Tradovate Platform Questions": [
+    "Is it mandatory to download a desktop platform for Tradovate?",
+    "Can a user set bracket orders (ATMs) with the Tradovate Groups (Trade Copier)?",
+    "What is the next step users should follow after logging in to Tradovate for the first time?",
+    "True/False: The free access to TradingView only includes data that updates every 5 seconds on the TradingView chart.",
+    "How are commissions deducted for Tradovate?",
+    "Can EUREX products such as the DAX Index, Mini-DAX, Euro Stoxx 50, Euro-Buxl, and Euro-Schatz be traded without any additional charges on Tradovate?"
+  ],
+  "WealthCharts Platform Questions": [
+    "How are commissions deducted in the WealthCharts platform?",
+    "Which products/instruments are not eligible on the WealthCharts platform?",
+    "Does WealthCharts work on Windows and Mac?",
+    "What should a user do if they don’t remember their WealthCharts credentials?"
+  ],
+  "Questions to Differentiate Rithmic, Tradovate, and WealthCharts": [
+    "Which platform is the only one that allows integration with TradingView?",
+    "Which platform is known for its ultra-low latency and direct market access suited for high-frequency traders?",
+    "Which platform offers a fully cloud-based trading interface accessible from web, desktop, and mobile apps without software installation?",
+    "Which platform provides award-winning advanced market scanning tools and built-in trade copier features?",
+    "Which platform requires virtual machines or remote desktop access to be used on Mac OS systems?",
+    "Which platform emphasizes user education and live support features as part of its core offering?",
+    "Which platform does not have a fully featured mobile app and is primarily desktop/web focused?",
+    "Which platform is noted for handling multiple logins and accounts simultaneously using a secondary login feature?",
+    "Which platform (or platforms) requires no software download for trading and works entirely in web browsers?",
+    "Which platform offers advanced scripting support for custom technical indicators and automation?",
+    "Which platform(s) have a built-in educational streaming platform?",
+    "Which platforms support integration with NinjaTrader?",
+    "Can I convert between Rithmic, Tradovate, and WealthCharts or request a refund if I choose the wrong platform for my evaluation account? Why?"
+  ]
+}
