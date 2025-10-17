@@ -304,6 +304,7 @@
         if (finished) return;
         if (timerRef.current) clearInterval(timerRef.current);
         setFinished(true);
+        setStarted(false); // allow reset button to reappear immediately
 
         const results = passedResults ?? (grading?.results || []);
         const total = results.filter(r=>r.passed).length;
@@ -537,7 +538,7 @@
                     <button
                       className="px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                       onClick={() => resetChannel(channelId)}
-                      disabled={started}
+                      disabled={started && !finished} // enable once finished
                       title="Reset just this channel back to Start"
                     >
                       Reset Channel
