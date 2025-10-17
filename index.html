@@ -42,8 +42,8 @@
     // ENDPOINTS / SETTINGS
     // ===============================
     const REPORT_URL = '/api/report';
-    const COACH_URL  = '/api/coach';   // now returns fixed questions from files, no repeats when given `avoid`
-    const GRADE_URL  = '/api/grader';  // optionally blocks dup questions (if you installed the "no-copy" grader)
+    const COACH_URL  = '/api/coach';   // supports sessionId + avoid (no repeats in a session)
+    const GRADE_URL  = '/api/grader';
     const CHECK_ACCESS_URL = '/api/check-access';
 
     const USE_MOCK = false;
@@ -69,6 +69,11 @@
       const r = await fetch(ch.file, { cache:'no-store' });
       if(!r.ok) throw new Error(`Failed to load ${ch.file}: ${r.status}`);
       return await r.text();
+    }
+
+    function genSessionId(){
+      // lightweight UUID-ish; fine for session grouping
+      return 'sess_' + Math.random().toString(36).slice(2,8) + Date.now().toString(36);
     }
 
     function Avatar({variant="bot"}) {
@@ -167,12 +172,12 @@
 
       const [runStartedAt, setRunStartedAt] = useState(null);
       const [scores, setScores] = useState({});
-      const [unlockedIdx, setUnlockedIdx] = useState(0);
+      const [unlockedIdx, setUnlockedIdx] = useState(0); // monotonically increases; never decreases
       const [completedIds, setCompletedIds] = useState(new Set());
       const [notice, setNotice] = useState('');
       const [showSummary, setShowSummary] = useState(false);
       const [askedSet, setAskedSet] = useState(new Set());
-
+      const [sessionId, setSessionId] = useState(null); // <-- used for no-repeat at server
 
       const scrollRef = useRef(null);
       const timerRef = useRef(null);
@@ -194,6 +199,7 @@
             setMessages([]);
             setRunStartedAt(null);
             setAskedSet(new Set());
+            setSessionId(null);
           } catch(e){ console.error(e); }
         })();
       }, [channelId]);
@@ -241,6 +247,7 @@
 
       async function startRun(){
         setAskedSet(new Set());
+        setSessionId(genSessionId()); // <-- new session to avoid repeats server-side
         setRunStartedAt(Date.now());
         setStarted(true); setFinished(false); setQCount(0); setGrading(null); setMessages([]); setHistory([]);
         startTimer();
@@ -251,46 +258,47 @@
       // ===============================
       // askNext(): gets a non-repeating question from /api/coach
       // ===============================
-async function askNext(){
-  if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
-  setTyping(true);
-  try {
-    if (USE_MOCK) {
-      const text = "Sample question?";
-      setMessages(m=>[...m, {from:'bot', text, time: now()}]);
-      setHistory(h=>[...h, {role:'assistant', content:text}]);
-      return;
-    }
+      async function askNext(){
+        if (qCount >= QUESTIONS_PER_RUN) { endRun(); return; }
+        setTyping(true);
+        try {
+          if (USE_MOCK) {
+            const text = "Sample question?";
+            setMessages(m=>[...m, {from:'bot', text, time: now()}]);
+            setHistory(h=>[...h, {role:'assistant', content:text}]);
+            setTyping(false); // make sure to stop typing in mock path
+            return;
+          }
 
-  // On the very first question of a run, ignore any stale set
-const avoid = qCount === 0 ? [] : Array.from(askedSet);
+          // On the very first question of a run, ignore any stale set
+          const avoid = qCount === 0 ? [] : Array.from(askedSet);
 
-    const res = await fetch(COACH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
-        avoid,                // ← prevent repeats
-        order: 'sequential'   // or 'random'
-      })
-    });
+          const res = await fetch(COACH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              channel: CHANNELS.find(c=>c.id===channelId)?.name || channelId,
+              avoid,                 // prevent repeats in this run
+              sessionId: sessionId || undefined // server remembers progress for the session
+            })
+          });
 
-    const txt = await res.text();
-    let data; try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
-    if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
+          const txt = await res.text();
+          let data; try { data = JSON.parse(txt); } catch { throw new Error(`Coach ${res.status}: ${txt}`); }
+          if (!res.ok) throw new Error(data?.error || `Coach ${res.status}`);
 
-    const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
-    // mark as asked
-    setAskedSet(prev => new Set(prev).add(qText));
+          const qText = data?.reply?.content?.trim() || "Ask: (No coach output)";
+          // mark as asked
+          setAskedSet(prev => new Set(prev).add(qText));
 
-    setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
-    setHistory(h=>[...h, {role:'assistant', content:qText}]);
-  } catch (e) {
-    setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
-  } finally {
-    setTyping(false);
-  }
-}
+          setMessages(m=>[...m, {from:'bot', text:qText, time: now()}]);
+          setHistory(h=>[...h, {role:'assistant', content:qText}]);
+        } catch (e) {
+          setMessages(m=>[...m, {from:'bot', text:`Coach error: ${e.message}`, time: now()}]);
+        } finally {
+          setTyping(false);
+        }
+      }
 
       function endRun(passedResults){
         if (finished) return;
@@ -320,9 +328,12 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
 
         setCompletedIds(prevSet => {
           const nextSet = new Set(prevSet).add(channelId);
+
+          // unlock next channel; IMPORTANT: do not reduce unlockedIdx later
           const currentIdx = CHANNELS.findIndex(c => c.id === channelId);
           setUnlockedIdx(prev => Math.max(prev, Math.min(currentIdx + 1, CHANNELS.length - 1)));
 
+          // if everything completed, schedule final report + show summary
           if (nextSet.size === CHANNELS.length) {
             const entries = Object.values(snapshot);
             const finalCorrect   = entries.reduce((s,v)=> s + (v?.total || 0), 0);
@@ -340,7 +351,6 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
                 });
               }, 10_000);
             }
-
             Promise.resolve().then(()=> setShowSummary(true));
           }
           return nextSet;
@@ -371,7 +381,7 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
               question: lastQuestion,
               answer: userText,
               faqMd,
-              askedQuestions: askedList // belt-and-suspenders if grader has no-copy
+              askedQuestions: askedList
             })
           });
 
@@ -412,25 +422,10 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
         }
       }
 
-      function trySwitchChannel(targetId, targetIdx){
-        if (started && !finished) { toast("Finish this run before switching channels."); return; }
-        if (targetIdx > unlockedIdx) { toast("Locked. Complete the previous channel first."); return; }
-        setChannelId(targetId);
-      }
-
-      const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-
-      function recomputeUnlocked(nextCompletedIds) {
-        let highest = -1;
-        for (let i = 0; i < CHANNELS.length; i++) {
-          if (nextCompletedIds.has(CHANNELS[i].id)) highest = i; else break;
-        }
-        return Math.max(0, highest);
-      }
-
       function resetEphemeralState() {
         if (timerRef.current) clearInterval(timerRef.current);
         setAskedSet(new Set());
+        setSessionId(null);
         setStarted(false);
         setFinished(false);
         setQCount(0);
@@ -442,21 +437,23 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
         setRunStartedAt(null);
       }
 
+      // ====== FIXED: Only reset THIS channel; do NOT re-lock others ======
       async function resetChannel(targetId = channelId) {
+        // remove saved score for this channel only
         setScores(prev => {
           const next = { ...prev };
           delete next[targetId];
           return next;
         });
 
+        // mark it as not completed, but do NOT decrease unlockedIdx
         setCompletedIds(prev => {
           const next = new Set(prev);
           next.delete(targetId);
-          const newUnlocked = recomputeUnlocked(next);
-          setUnlockedIdx(newUnlocked);
           return next;
         });
 
+        // if we're currently on it, clear run state + reload FAQ
         if (targetId === channelId) {
           resetEphemeralState();
           try { setFaqMd(await fetchFAQMd(channelId)); } catch {}
@@ -467,11 +464,19 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
         if (timerRef.current) clearInterval(timerRef.current);
         setScores({});
         setCompletedIds(new Set());
-        setUnlockedIdx(0);
+        setUnlockedIdx(0); // only the global reset brings locks back
         setShowSummary(false);
         resetEphemeralState();
         try { setFaqMd(await fetchFAQMd(channelId)); } catch {}
       }
+
+      function trySwitchChannel(targetId, targetIdx){
+        if (started && !finished) { toast("Finish this run before switching channels."); return; }
+        if (targetIdx > unlockedIdx) { toast("Locked. Complete the previous channel first."); return; }
+        setChannelId(targetId);
+      }
+
+      const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
       // ===============================
       // RENDER
@@ -515,39 +520,39 @@ const avoid = qCount === 0 ? [] : Array.from(askedSet);
                 </div>
 
                 {(!started || finished) && (
-  <>
-    <button
-      className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-      onClick={startRun}
-      disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
-      title={
-        scores[channelId]
-          ? 'This channel is completed. Switch channels or reset to try again.'
-          : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
-      }
-    >
-      Start
-    </button>
+                  <>
+                    <button
+                      className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                      onClick={startRun}
+                      disabled={!!scores[channelId] || CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx}
+                      title={
+                        scores[channelId]
+                          ? 'This channel is completed. Switch channels or reset to try again.'
+                          : (CHANNELS.findIndex(c=>c.id===channelId) > unlockedIdx ? 'Locked channel' : '')
+                      }
+                    >
+                      Start
+                    </button>
 
-    <button
-      className="px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-      onClick={() => resetChannel(channelId)}
-      disabled={started}
-      title="Reset just this channel back to Start"
-    >
-      Reset Channel
-    </button>
+                    <button
+                      className="px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      onClick={() => resetChannel(channelId)}
+                      disabled={started}
+                      title="Reset just this channel back to Start"
+                    >
+                      Reset Channel
+                    </button>
 
-    <button
-      className="px-3 py-1.5 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
-      onClick={resetAll}
-      disabled={started}
-      title="Reset everything back to Start"
-    >
-      Reset All
-    </button>
-  </>
-)}
+                    <button
+                      className="px-3 py-1.5 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                      onClick={resetAll}
+                      disabled={started}
+                      title="Reset everything back to Start"
+                    >
+                      Reset All
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
