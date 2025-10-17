@@ -11,6 +11,11 @@ function fileForChannel(channelId) {
   return path.join(process.cwd(), 'faqs', 'questions', `${channelId}.json`);
 }
 
+function stateFileFor(channelId, sessionId) {
+  const safe = String(sessionId || 'default').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.join(process.cwd(), 'faqs', 'state', `${channelId}.${safe}.json`);
+}
+
 function norm(s) {
   return String(s || '')
     .toLowerCase()
@@ -19,7 +24,21 @@ function norm(s) {
     .trim();
 }
 
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function ensureDir(p) {
+  try { await fs.mkdir(p, { recursive: true }); } catch {}
+}
+
 module.exports = async function handler(req, res) {
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -33,17 +52,20 @@ module.exports = async function handler(req, res) {
       try { body = JSON.parse(body || '{}'); }
       catch (e) { return res.status(400).json({ error: 'Bad JSON', detail: String(e) }); }
     }
+
     const {
       channel = '#platform-setup',
-      avoid = []  // already asked questions
+      avoid = [],        // optional: client-supplied list to skip
+      sessionId = 'default' // NEW: track progress & avoid repeats per session
     } = body || {};
 
     const channelId = normalizeChannel(channel);
-    const file = fileForChannel(channelId);
+    const qFile = fileForChannel(channelId);
 
+    // Load questions
     let raw;
     try {
-      raw = await fs.readFile(file, 'utf8');
+      raw = await fs.readFile(qFile, 'utf8');
     } catch {
       return res.status(404).json({ error: `No question file for channel '${channelId}'` });
     }
@@ -52,7 +74,7 @@ module.exports = async function handler(req, res) {
     try {
       questions = JSON.parse(raw);
     } catch {
-      return res.status(500).json({ error: `Invalid JSON in ${file}` });
+      return res.status(500).json({ error: `Invalid JSON in ${qFile}` });
     }
 
     if (!Array.isArray(questions) || questions.length === 0) {
@@ -61,23 +83,79 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Filter out already-asked questions
-    const avoidNorm = new Set((avoid || []).map(norm).filter(Boolean));
-    const remaining = questions
-      .map(q => String(q || '').trim())
-      .filter(q => q && !avoidNorm.has(norm(q)));
-
-    if (remaining.length === 0) {
+    // Clean the questions list
+    const cleaned = questions.map(q => String(q || '').trim()).filter(Boolean);
+    if (cleaned.length === 0) {
       return res.status(200).json({
-        reply: { role: 'assistant', content: 'Ask: (No more unique questions available for this channel)' }
+        reply: { role: 'assistant', content: 'Ask: (No questions available for this channel — add items to faqs/questions/<channel>.json)' }
       });
     }
 
-    // Always random by default
-    const nextQ = remaining[Math.floor(Math.random() * remaining.length)];
+    // Optional stateless filter (still supported)
+    const avoidNorm = new Set((avoid || []).map(norm).filter(Boolean));
+
+    // ---- Stateful no-repeat logic (per sessionId) ----
+    const stateDir = path.join(process.cwd(), 'faqs', 'state');
+    await ensureDir(stateDir);
+    const sFile = stateFileFor(channelId, sessionId);
+
+    let state = null;
+    try {
+      const sRaw = await fs.readFile(sFile, 'utf8');
+      state = JSON.parse(sRaw);
+    } catch {
+      state = null;
+    }
+
+    const makeState = () => ({
+      order: shuffle(cleaned),
+      index: 0,
+      sourceLen: cleaned.length,
+      updatedAt: Date.now()
+    });
+
+    // If state missing or the question set size changed, rebuild
+    if (
+      !state ||
+      !Array.isArray(state.order) ||
+      typeof state.index !== 'number' ||
+      state.sourceLen !== cleaned.length
+    ) {
+      state = makeState();
+    }
+
+    // Advance until we find a question not in the client-provided avoid list
+    let picked = null;
+    while (state.index < state.order.length) {
+      const candidate = state.order[state.index];
+      state.index += 1; // claim it
+      if (!avoidNorm.has(norm(candidate))) {
+        picked = candidate;
+        break;
+      }
+      // else keep skipping
+    }
+
+    if (!picked) {
+      // Exhausted for this session
+      await fs.writeFile(sFile, JSON.stringify(state, null, 2)).catch(() => {});
+      return res.status(200).json({
+        reply: { role: 'assistant', content: 'Ask: (No more unique questions available for this channel in this session)' },
+        done: true
+      });
+    }
+
+    // Save progress
+    state.updatedAt = Date.now();
+    await fs.writeFile(sFile, JSON.stringify(state, null, 2));
 
     return res.status(200).json({
-      reply: { role: 'assistant', content: String(nextQ).trim() }
+      reply: { role: 'assistant', content: String(picked).trim() },
+      meta: {
+        channel: channelId,
+        sessionId,
+        remaining: Math.max(0, state.order.length - state.index)
+      }
     });
   } catch (e) {
     return res.status(500).json({ error: 'Coach error', detail: String(e) });
